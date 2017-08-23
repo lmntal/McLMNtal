@@ -1,0 +1,172 @@
+% **********************
+% *                    *
+% *      A* search     *
+% *                    *
+% **********************
+:- uniq |
+    ret = run({
+	curr($a), e($s, $d, $c) :- $a==$s, unary($d), int($c) | curr($d), e($s, $d, $c), cost($c).
+	curr($a), e($s, $d, $c) :- $a==$d, unary($s), int($c) | curr($s), e($s, $d, $c), cost($c).
+	      },
+	      {
+	curr(a).
+
+	e(a, z, 75), e(a, t, 118), e(a, s, 140),
+	e(b, g, 90), e(b, p, 101), e(b, f, 211), e(b, u, 85),
+	e(c, p, 138), e(c, r, 146), e(c, d, 120),
+	e(d, m, 75),
+	e(e, h, 86),
+	e(f, s, 99),
+	e(h, u, 98),
+	e(i, n, 87), e(i, v, 92),
+	e(l, m, 70), e(l, t, 111),
+	e(o, z, 71), e(o, s, 151),
+	e(p, r, 97),
+	e(r, s, 80),
+	e(u, v, 142)
+	      },
+	      {
+	h = eval({curr(a), $s[]}) :- h(366).
+	h = eval({curr(b), $s[]}) :- h(0).
+	h = eval({curr(c), $s[]}) :- h(160).
+	h = eval({curr(d), $s[]}) :- h(242).
+	h = eval({curr(e), $s[]}) :- h(161).
+	h = eval({curr(f), $s[]}) :- h(176).
+	h = eval({curr(g), $s[]}) :- h(77).
+	h = eval({curr(h), $s[]}) :- h(151).
+	h = eval({curr(i), $s[]}) :- h(226).
+	h = eval({curr(l), $s[]}) :- h(244).
+	h = eval({curr(m), $s[]}) :- h(241).
+	h = eval({curr(n), $s[]}) :- h(234).
+	h = eval({curr(o), $s[]}) :- h(380).
+	h = eval({curr(p), $s[]}) :- h(100).
+	h = eval({curr(r), $s[]}) :- h(193).
+	h = eval({curr(s), $s[]}) :- h(253).
+	h = eval({curr(t), $s[]}) :- h(329).
+	h = eval({curr(u), $s[]}) :- h(80).
+	h = eval({curr(v), $s[]}) :- h(199).
+	h = eval({curr(z), $s[]}) :- h(374).
+	      }).
+
+
+set.use.
+state_space.use.
+
+Ret = run(Rs, {$init[]}, Heu) :- 
+    Ret = exp00(Rs, Heu, s(ID, {$init[]}, -1, 0), hashmap.init,
+	       pqueue.init, state_space.state_map_find(state_space.state_map_init, {$init[]}, ID)).
+
+Ret = exp00(Rs, {@r}, s(ID, {$s[]}, P, G), Hm, Pq, M) :-
+    Ret = exp01(Rs, {@r, eval({$s[]}, h)}, s(ID, {$s[]}, P, G), Hm, Pq, M).
+
+Ret = exp01(Rs, {@r, h($h)}/, s(ID, S, P, G), Hm, Pq, M) :- int($h) |
+    Ret = exp0(Rs, {@r}, s(ID, S, P, G, $h), Hm, Pq, M).
+
+Ret = exp0(Rs, He, s($id, {$s[]}, $p, $g, $h), Hm, Pq, M) :- int($id), int($p), int($g), int($h) |
+    Ret = exp(Rs, He, hashmap.insert(Hm, $id, '.'($p, $g, $h)), pqueue.enq(Pq, s($id, {$s[]}, $p, $g, $h)), M).
+
+Ret = exp(Rs, He, Hm, Pq, M) :-
+    Ret = exp1(Rs, He, Hm, pqueue.is_emp(Pq, Res), Res, M).
+
+Ret = exp1(Rs, He, Hm, Pq, true, M) :-
+    Ret = finish(Rs, He, Hm, Pq, M).
+
+Ret = exp1(Rs, He, Hm, Pq, false, M) :-
+    Ret = exp2(Rs, He, Hm, pqueue.deq(Pq, Res), Res, M).
+
+Ret = exp2(Rs, He, Hm, Pq, s($id, S, P, G, $h), M) :- $h=:=0, int($id) |
+    Ret = create_path(Rs, He, Hm, Pq, '.'(P, G, $h), M, [S]).
+
+Ret = create_path(Rs, He, Hm, Pq, '.'($p, $g, $h), M, Path) :- $p=\=-1, int($p), int($g), int($h) |
+    Ret = create_path(Rs, He, hashmap.find(Hm, $p, Ress), Pq, Ress, state_space.state_map_find(M, $p, R_), [R_|Path]).
+
+Ret = create_path(Rs, He, Hm, Pq, '.'($p, $g, $h), M, Path) :- $p=:=-1, int($g), int($h) |
+    Ret = Path, finish(Rs, He, Hm, Pq, M).
+
+Ret = exp2(Rs, He, Hm, Pq, s(ID, S, P, G, $h), M) :- $h=\=0 |
+    Ret = exp3(Rs, He, Hm, Pq, s(ID, S, P, G, $h), M).
+
+Ret = exp3(Rs, He, Hm, Pq, s(I, {$s[]}, P, G, H), M) :-
+    Ret = suc(Rss, He, Hm, Pq, s(I, {$s[]}, P, G, H), state_space.react_nd_set(Rs, {$s[]}, Rss), M).
+
+Ret = suc(Rs, He, Hm, Pq, s($id, {$s[]}, $p, $g, $h), [], M) :- int($id), int($p), int($g), int($h) |
+    Ret = exp(Rs, He, Hm, Pq, M).
+
+Ret = suc(Rs, He, Hm, Pq, s($i, S, P, $g, H), [{$s[], cost($c)}|L], M) :- $gg=$g+$c, int($i) |
+    Ret = suc1(Rs, He, Hm, Pq, s($i, S, P, $g, H), sc({$s[]}, $i, $gg), L, M).
+
+Ret = suc1(Rs, {@r}, Hm, Pq, Src, sc({$s[]}, P, G), L, M) :-
+    Ret = suc2(Rs, {@r, eval({$s[]}, h)}, Hm, Pq, Src, sc({$s[]}, P, G), L, M).
+
+Ret = suc2(Rs, {@r, h($h)}/, Hm, Pq, Src, sc(S, P, G), L, M) :- int($h) |
+    Ret = suc3(Rs, {@r}, Hm, Pq, Src, sc(S, P, G, $h), L, M).
+
+Ret = suc3(Rs, He, Hm, Pq, Src, sc({$s[]}, P, G, H), L, M) :-
+    Ret = suc4(Rs, He, Hm, Pq, Src, sc(Id, {$s[]}, P, G, H), L, state_space.state_map_find(M, {$s[]}, Id)).
+
+Ret = suc4(Rs, He, Hm, Pq, Src, sc($id, S, P, G, H), L, M) :- int($id) |
+    Ret = suc5(Rs, He, hashmap.find(Hm, $id, Res), Pq, Src, sc($id, S, P, G, H), Res, L, M).
+
+Ret = suc5(Rs, He, Hm, Pq, Src, sc($id, S, $p, $g, $h), none, L, M) :- int($id), int($p), int($g), int($h) |
+    Ret = suc(Rs, He, hashmap.insert(Hm, $id, '.'($p, $g, $h)), pqueue.enq(Pq, s($id, S, $p, $g, $h)), Src, L, M).
+
+Ret = suc5(Rs, He, Hm, Pq, Src, sc($id, S, $p, $g, $h), '.'($p_, $g_, $h_), L, M) :- $g < $g_, int($id), int($p), int($g), int($h), int($p_), int($h_) |
+    Ret = suc(Rs, He, hashmap.insert(Hm, $id, '.'($p, $g, $h)), pqueue.enq(Pq, s($id, S, $p, $g, $h)), Src, L, M).
+
+Ret = suc5(Rs, He, Hm, Pq, Src, sc($id, {$s[]}, $p, $g, $h), '.'($p_, $g_, $h_), L, M) :- $g >= $g_, int($id), int($p), int($g), int($h), int($p_), int($h_) |
+    Ret = suc(Rs, He, Hm, Pq, Src, L, M).
+
+
+
+
+% 
+% HashMap
+% 
+
+% ----Interface----
+
+hashmap_init@@Ret = hashmap.init :- Ret = [].
+
+hashmap_insert@@Ret = hashmap.insert(H, Key, Val) :- Ret = [d(Key, Val)|H].
+
+hashmap_find@@Ret = hashmap.find(H, Key, Res) :- Ret = hashmap.inner_find(H, Key, Res, []).
+
+% ----Implementation----
+
+Ret = hashmap.inner_find([], $key, Res, Hs) :- int($key) | Ret = Hs, Res = none.
+Ret = hashmap.inner_find([d($key, '.'($p, $g, $f))|H], $key_, Res, Hs) :- int($g), int($f), int($p), $key=:=$key_ | 
+    Ret = append(Hs,[d($key, '.'($p, $g, $f))|H]), Res = '.'($p, $g, $f).
+Ret = hashmap.inner_find([d($key, V)|H], $key_, Res, Hs) :- $key=\=$key_ | 
+    Ret = hashmap.inner_find(H, $key_, Res, [d($key, V)|Hs]).
+
+H=append([],Y) :- H=Y.
+H=append([A|X],Y) :- H=[A|append(X,Y)].
+
+% 
+% Priority queue
+% 
+
+% author: Takahiro Yanagawa
+
+% ----Interface----
+pqueue_init@@Ret = pqueue.init :- Ret = [].
+
+pqueue_enq@@Ret = pqueue.enq(Pq, X) :- Ret = merge(heap(X, []), Pq).
+
+pqueue_is_emp@@Ret = pqueue.is_emp([], Res) :- Ret = [], Res = true.
+pqueue_is_emp@@Ret = pqueue.is_emp(heap(X, Y), Res) :- Ret = heap(X, Y), Res = false.
+
+pqueue_deq@@Ret = pqueue.deq(heap(X, L), Res) :- Ret = mergepairs(L), Res = X.
+
+% ----Implementation-----
+
+Ret=merge([],H2) :- Ret=H2.
+Ret=merge(H1,[]) :- Ret=H1.
+Ret=merge(X1,X2),X1=heap(s(ID1, S1, P1, G1, F1),L1),X2=heap(s(ID2, S2, P2, G2, F2),L2) :- G1+F1<G2+F2 |
+    Ret=heap(s(ID1, S1, P1, G1, F1),[heap(s(ID2, S2, P2, G2, F2),L2)|L1]).
+Ret=merge(X1,X2),X1=heap(s(ID1, S1, P1, G1, F1),L1),X2=heap(s(ID2, S2, P2, G2, F2),L2) :- G1+F1>=G2+F2 | 
+    Ret=heap(s(ID2, S2, P2, G2, F2),[heap(s(ID1, S1, P1, G1, F1),L1)|L2]).
+Ret=mergepairs([]) :- Ret=[].
+Ret=mergepairs([H]) :- Ret=H.
+Ret=mergepairs([H1,H2|T]) :- Ret=merge(merge(H1,H2),mergepairs(T)).
+
