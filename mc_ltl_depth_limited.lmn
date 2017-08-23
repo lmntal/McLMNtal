@@ -1,0 +1,231 @@
+% ************************
+% *  LTL Model Checking  *
+% ************************
+% ++++++++++++++++++++++++++++++++test-case++++++++++++++++++++++++++++++++
+% +++++test(phi)+++++
+:- uniq |
+    ret = mc(ba([0, 1],
+		    [d(0, true, 0), d(0, not(!P), 1), d(1, not(!P), 1)], [0], [1]),
+    		 {
+    	':-'({p_thinking(!Lx0, !Rx0), fork_free(!Lx1, !Rx0)}, {}, {p_one_fork(!Lx0, !Rx1), fork_used(!Lx1, !Rx1)}),
+    	':-'({p_one_fork(!Lxx0, !Rxx0), fork_used(!Lxx1, !Rxx0), fork_free(!Lxx0, !Rxx1)}, {}, {p_eating(!Lxx2, !Rxx2), fork_used(!Lxx1, !Rxx2), fork_used(!Lxx2, !Rxx1)}),
+    	':-'({p_eating(!Lxxx0, !Rxxx0), fork_used(!Lxxx0, !Rxxx1), fork_used(!Lxxx1, !Rxxx0)}, {}, {p_thinking(!Lxxx2, !Rxxx2), fork_free(!Lxxx2, !Rxxx1), fork_free(!Lxxx1, !Rxxx2)})
+    		 }, 
+    		 {
+    	p_thinking(L0, R0), fork_free(L0, R1),
+    	p_thinking(L1, R1), fork_free(L1, R2),
+    	p_thinking(L2, R2), fork_free(L2, R0)
+    		 }),
+pred({p_eating(!X, !Y)}, {}, !P).
+% +++++++++++++++++++++
+% ++++++++++++++++++++++++++++++++test-case++++++++++++++++++++++++++++++++
+set.use.
+state_space.use.
+Ret = mc(A, Ruleset, Graph) :-
+    Ret = mc0, ret(A), model(Ruleset, Graph).
+
+% empty---------
+empty@@Ret = mc0, Ret0=ba(Q, D, [$q0|Q0], F), model(Ruleset, {$graph[]}) :- int($q0) |
+    Ret = mc1(Q0), Ret0 = ba(Q, D, $q0, F), dfs1, hash1(set.init), hash2(set.init), on_stack(set.init), stack1([['.'(I,$q0,0)]]), model(Ruleset, state_space.state_map_find(state_space.state_map_init, {$graph[]}, I)),
+    depth_limit = 6.
+
+% % dfs1-----------------------------------------------------------------------
+dfs1_0@@dfs1, stack1([['.'($s,$q,$d)|T]|T0]), hash1(H0), on_stack(H1):- int($s), int($q), int($d)|
+    dfs1_foreach($d, succ($s, $q)), stack1([['.'($s, $q, $d)|T]|T0]), hash1(set.insert(H0, '.'($s, $q))), on_stack(set.insert(H1,'.'($s,$q))), st_([]).
+
+dfs1_1@@dfs1, stack1([[],['.'($s,$q,$d)|T]|T0]) :- int($s), int($q), int($d) |
+    dfs1_acc($q, [], f), stack1([['.'($s,$q,$d)|T]|T0]).
+
+dfs1_2@@dfs1, stack1([[]]) :-
+    no_acceptance_cycle_exists.
+
+dfs1_acc@@dfs1_acc(t), stack1([['.'($s,$q,$d)|T]|T0]):- int($s),int($q),int($d)|
+    dfs2, stack2([['.'($s,$q,$d)]]), stack1([['.'($s,$q,$d)|T]|T0]).
+
+dfs1_acc@@dfs1_acc(f) :- dfs1_pop.
+dfs1_acc@@dfs1_acc(t), stack1([['.'($s,$q,$d)|T]|T0]):- int($s),int($q),int($d) |
+    dfs2, stack2([['.'($s,$q,$d)]]), stack1([['.'($s,$q,$d)|T]|T0]).
+
+dfs1_pop@@dfs1_pop, stack1([['.'($s,$q,$d)|T]|T0]), on_stack(H) :- int($s),int($q),int($d) |
+    dfs1, stack1([T|T0]), on_stack(set.erase(H,'.'($s,$q))).
+
+dfs1_foreach@@dfs1_foreach($d, []), st_(St_), stack1(St) :- int($d) |
+    dfs1, stack1([St_|St]).
+dfs1_foreach@@dfs1_foreach($d, ['.'($s,$q)|T]), hash1(H0) :- int($s), int($q), int($d) |
+    dfs1_foreach_inner($d, ['.'($s,$q)|T],Res), hash1(set.find(H0, '.'($s,$q), Res)).
+
+dfs1_foreach_inner@@dfs1_foreach_inner($d, ['.'($s,$q)|T], some) :- int($s), int($q), int($d) |
+    dfs1_foreach($d, T).
+dfs1_foreach_inner@@dfs1_foreach_inner($d, ['.'($s,$q)|T], none), depth_limit = $dl :- int($s),int($q), $d >= $dl |
+    dfs1_foreach($d, T), depth_limit = $dl.
+dfs1_foreach_inner@@dfs1_foreach_inner($d, ['.'($s,$q)|T], none), st_(St), depth_limit = $dl :- int($s),int($q), $d < $dl, $dd = $d + 1 |
+    dfs1_foreach($d, T), st_(['.'($s,$q,$dd)|St]), depth_limit = $dl.
+
+% dfs2---------------------------------------------------------------------
+dfs2_0@@dfs2, stack2([[]]),  :- dfs1_pop.
+dfs2_1@@dfs2, stack2([[],['.'($s,$q,$d)|T]|T0]) :- int($s),int($q), int($d) |
+    dfs2, stack2([T|T0]).
+dfs2_2@@dfs2, stack2([['.'($s,$q,$d)|T]|T0]), hash2(H0) :-int($s),int($q), int($d) |
+    dfs2_foreach($d, succ($s,$q)),stack2([['.'($s,$q,$d)|T]|T0]),hash2(set.insert(H0, '.'($s,$q))), st_([]).
+
+dfs2_foreach_0@@dfs2_foreach($d, []), st_(St_), stack2(St) :- int($d) |
+    dfs2, stack2([St_|St]).
+dfs2_foreach_1@@dfs2_foreach($d, ['.'($s,$q)|T]),on_stack(H) :- int($s),int($q), int($d) |
+    dfs2_foreach_inner0($d, ['.'($s,$q)|T],Res),
+    on_stack(set.find(H,'.'($s,$q),Res)).
+
+dfs2_foreach0_0@@dfs2_foreach_inner0($d, S, none) :- int($d) | dfs2_foreach2($d, S).
+dfs2_foreach0_1@@dfs2_foreach_inner0($d, ['.'($s,$q)|$g], some) :- int($s),int($q),ground($g), int($d) |
+    terminate0([]), depth($d).
+
+dfs2_foreach2@@dfs2_foreach2($d, ['.'($s,$q)|T]), hash2(H0) :- int($s), int($q), int($d) |
+    dfs2_foreach_inner($d, ['.'($s,$q)|T],Res), hash2(set.find(H0, '.'($s,$q), Res)).
+
+dfs2_foreach_innter_0@@dfs2_foreach_inner($d, ['.'($s,$q)|T], none), depth_limit = $dl :- int($s), int($q), int($d), $d >= $dl |
+    dfs2_foreach($d, T), depth_limit = $dl.
+dfs2_foreach_innter_10@@dfs2_foreach_inner($d, ['.'($s,$q)|T], none), st_(St), depth_limit = $dl :- int($s),int($q), $d < $dl, $dd = $d + 1 |
+    dfs2_foreach($d, T), st_(['.'($s,$q,$dd)|St]), depth_limit = $dl.
+dfs2_foreach_innter_20@@dfs2_foreach_inner($d, ['.'($s,$q)|T], some) :- int($s), int($q), int($d) |
+    dfs2_foreach($d, T).
+
+% terminate--------------------------------------------------------------------
+
+term0_0@@terminate0(L), stack2([['.'($s, Q, $d)|$g]|T_]), model(Rs, M) :- int($s),ground($g), int($d)|
+    terminate0(['.'(Res,Q)|L]), stack2(T_), model(Rs, state_space.state_map_find(M,$s,Res)).
+
+term0_1@@terminate0(L), stack2([]) :-
+    terminate1(L).
+
+term1_0@@terminate1(L), stack1([['.'($s, Q, $d)|$g]|T_]), model(Rs, M) :- int($s),ground($g), int($d) |
+    terminate1(['.'(Res,Q)|L]), stack1(T_), model(Rs, state_space.state_map_find(M,$s,Res)).
+
+term1_1@@terminate1(L), stack1([]) :- counterexample(L).
+
+
+% dfs1_acc---------------------------------------------------------------------
+dfs1_acc($q, R, $b), Ret=ba(Q, D, Q0, [$f|T]) :- $q=$f,unary($b)|
+    dfs1_acc($q, [$f|R], t), Ret=ba(Q,D,Q0,T).
+
+dfs1_acc($q, R, B), Ret=ba(Q, D, Q0, [$f|T]) :- $q=\=$f | dfs1_acc($q, [$f|R], B), Ret=ba(Q,D,Q0,T).
+
+dfs1_acc($q,R,B),Ret=ba(Q,D,Q0,[]):- int($q)| dfs1_acc(B), Ret=ba(Q,D,Q0,R).
+% succ--------------------------------------------------------------------------
+succ@@Ret = succ($s, $q), model(Rs, M) :- int($s), int($q) |
+    Ret = succ1($s, $q, R), model(Rs, state_space.state_map_find(M, $s, R)).
+
+succ1@@Ret = succ1(S_, Q, {$g[]}), model(Rs, M) :- 
+    Ret = succ1(S_, Q, [], state_space.react_nd_set(Rs, {$g[]}, Rs_)), model(Rs_, M).
+
+Ret = succ1(S, Q, L, [{$g[]}|T]), model(Rs, M) :-
+    Ret = succ1(S, Q, [I|L], T), model(Rs, state_space.state_map_find(M, {$g[]}, I)).
+
+copy@@Ret = succ1($s,$q,[],[]), model(Rs, M), Ret__=ba(Q_, D, Q0, F) :-int($s), int($q) |
+    Ret = prod([], [], [$s], basucc($q, D1, R, [])), model(Rs, state_space.state_map_find(M, $s, R)), Ret__=ba(Q_, D2, Q0, F),
+    copy_props(D, D1, D2).
+
+copy@@Ret = succ1($s, $q, L, []), model(Rs, M), Ret__=ba(Q_, D, Q0, F) :-int($s), int($q) |
+    Ret = prod([], [], L, basucc($q, D1, R, [])), model(Rs, state_space.state_map_find(M, $s, R)), Ret__=ba(Q_, D2, Q0, F),
+    copy_props(D, D1, D2).
+
+
+Ret = prod(R, [], [], $s) :- ground($s) | Ret = R.
+Ret = prod(R, Q, [$s|T], []) :- int($s) | Ret = prod(R, [], T, Q).
+Ret = prod(R, Q, [$s|T], [$q|T_]) :- int($s),int($q) |
+    Ret = prod(['.'($s,$q)|R], [$q|Q], [$s|T], T_).
+
+
+copy_props([], D1, D2) :-
+    D1 = [], D2 = [].
+copy_props([d($src, P, $dst) | T], D1, D2) :- int($src), int($dst) |
+    D1 = [d($src, P1, $dst) | T1], D2 = [d($src, P2, $dst) | T2],
+    copy_prop(P, P1, P2), copy_props(T, T1, T2).
+
+copy_prop(true, P1, P2) :-
+    P1 = true, P2 = true.
+copy_prop(false, P1, P2) :-
+    P1 = false, P2 = false.
+copy_prop(not(X), P1, P2) :-
+    P1 = not(L1), P2 = not(L2),
+    copy_prop(X, L1, L2).
+copy_prop($x, P1, P2) :- hlink($x) |
+    P1 = $x, P2 = $x.
+copy_prop(and(X, Y), P1, P2) :-
+    P1 = and(L1, L2), P2 = and(L1_, L2_),
+    copy_prop(X, L1, L2),
+    copy_prop(Y, L1_, L2_).
+copy_prop(or(X, Y), P1, P2) :-
+    P1 = not(and(not(L1), not(L2))), P2 = not(and(not(L1_), not(L2_))),
+    copy_prop(X, L1, L2),
+    copy_prop(Y, L1_, L2_).
+copy_prop(imply(X, Y), P1, P2) :-
+    P1 = not(and(L1, not(L2))), P2 = not(and(L1_, not(L2_))),
+    copy_prop(X, L1, L2),
+    copy_prop(Y, L1_, L2_).
+
+
+delete_prop(true) :- .
+delete_prop(false) :- .
+delete_prop(not(X)) :- delete_prop(X).
+delete_prop($x) :- hlink($x) | .
+delete_prop(and(X, Y)) :- delete_prop(X), delete_prop(Y).
+delete_prop(or(X, Y)) :- delete_prop(X), delete_prop(Y).
+delete_prop(imply(X, Y)) :- delete_prop(X), delete_prop(Y).
+
+
+% basucc----------------------------------------------------------------------
+Ret = basucc($q, [d($n, F, $nn)|T], {$s[]}, RetS) :-
+    $n=:=$q, int($nn) |
+    Ret = basucc($q, T, {$s[]}, RetS, inner_basucc(F, {$s[]}, $nn)).
+
+Ret = basucc($q, [d($n, F, $nn)|T], S, RetS) :-
+    $q =\= $n, int($nn) |
+    Ret = basucc($q, T, S, RetS), delete_prop(F).
+
+Ret = basucc($q, [], {$s[]}, RetS) :-
+    int($q) |
+    Ret = RetS.
+
+Ret = basucc(Q, D, S, RetS, true(N)) :-
+    Ret = basucc(Q, D, S, [N|RetS]).
+
+Ret = basucc(Q, D, S, RetS, fail($n)) :-
+    int($n) |
+    Ret = basucc(Q, D, S, RetS).
+
+% inner_basucc----------------------------------------------------------------------
+Ret = inner_basucc(and(X, Y), {$s[]}, $n) :- int($n) |
+    Ret = and_inner_basucc(inner_basucc(X, {$s[]}, $n), inner_basucc(Y, {$s[]}, $n)).
+
+Ret = and_inner_basucc(true($n), true($m)) :- int($n), int($m) |
+    Ret = true($n).
+Ret = and_inner_basucc(true($n), fail($m)) :- int($n), int($m) |
+    Ret = fail($n).
+Ret = and_inner_basucc(fail($n), true($m)) :- int($n), int($m) |
+    Ret = fail($n).
+Ret = and_inner_basucc(fail($n), fail($m)) :- int($n), int($m) |
+    Ret = fail($n).
+
+Ret = not(true(N)) :-
+	Ret = fail(N).
+Ret = not(fail(N)) :-
+	Ret = true(N).
+
+Ret = inner_basucc(not(X), S, N) :-
+	Ret = not(inner_basucc(X, S, N)).
+
+Ret = inner_basucc($x, S, N), pred({$h[]}, {$g[]}, $y) :- hlink($x), $x == $y |
+    Ret = t_inner_basucc(state_space.react_nd_set({':-'({$h[]}, {$g[]}, {$h[]})}, S, p($x)), N).
+
+Ret = inner_basucc($x, S, N), p($y) = Pred :- hlink($x), $x == $y |
+    Ret = t_inner_basucc(state_space.react_nd_set(Pred, S, p($x)), N).
+
+Ret = inner_basucc(true, {$s[]}, N) :-
+    Ret = true(N).
+
+Ret = inner_basucc(false, {$s[]}, N) :-
+    Ret = fail(N).
+
+Ret = t_inner_basucc([], N) :-
+    Ret = fail(N).
+Ret = t_inner_basucc([{$g[]}|T], N) :-
+    Ret = true(N), free(T).
