@@ -1,0 +1,95 @@
+% *************************************
+% *                                   *
+% *      State space construction     *
+% *                                   *
+% *************************************
+% ++(hanoi)+++++++++++++++++++
+% :- uniq,new($p1),new($p2),new($t1),new($t2) |
+%     ret = run({':-'({$p1=p(['$h1'|$t1]), $p2=p(['$h2'|$t2])},
+% 		    {'<'('$h1','$h2')},
+% 		    {$p1=p($t1),$p2=p(['$h1','$h2'|$t2])})},
+% 	      {poles(p([1,2,3,4,5,6,7,8,9,10,99]),p([99]),p([99]))}).
+% ++(euclid)+++++++++++++++++++
+% :- uniq |
+%    ret = run({':-'({n('$m'), n('$n')},
+% 		    {'=<'('$m', '$n'), '=<'(1,'$m'), ':='('$l', '-'('$n','$m'))},
+% 		    {n('$m'),n('$l')})},
+% 	      {n(2),n(400000)}).
+% ++(bubble sort)+++++++++++++++++++
+% :- uniq, new($l), new($l2) |
+%     ret = run({':-'({$l=['$x', '$y'|$l2]},
+% 		    {'>'('$x', '$y')},
+% 		    {$l=['$y', '$x'|$l2]})},
+% 	      { r=[9,8,7,6,5,4,3,2,1]}).
+% ++(phi)+++++++++++++++++++
+% :-  uniq |
+%     ret = run({
+%     	':-'({p_thinking(!Lx0, !Rx0), fork_free(!Lx1, !Rx0)}, {}, {p_one_fork(!Lx0, !Rx1), fork_used(!Lx1, !Rx1)}),
+%     	':-'({p_one_fork(!Lxx0, !Rxx0), fork_used(!Lxx1, !Rxx0), fork_free(!Lxx0, !Rxx1)}, {}, {p_eating(!Lxx2, !Rxx2), fork_used(!Lxx1, !Rxx2), fork_used(!Lxx2, !Rxx1)}),
+%     	':-'({p_eating(!Lxxx0, !Rxxx0), fork_used(!Lxxx0, !Rxxx1), fork_used(!Lxxx1, !Rxxx0)}, {}, {p_thinking(!Lxxx2, !Rxxx2), fork_free(!Lxxx2, !Rxxx1), fork_free(!Lxxx1, !Rxxx2)})
+%     	      },
+% 	      {
+% 	p_thinking(L0, R0), fork_free(L0, R1).
+% 	p_thinking(L1, R1), fork_free(L1, R2).
+% 	p_thinking(L2, R2), fork_free(L2, R3).
+%  	p_thinking(L3, R3), fork_free(L3, R4).
+% 	p_thinking(L4, R4), fork_free(L4, R5).
+% 	p_thinking(L5, R5), fork_free(L5, R6).
+% 	p_thinking(L6, R6), fork_free(L6, R7).
+% 	p_thinking(L7, R7), fork_free(L7, R8).
+% 	p_thinking(L8, R8), fork_free(L8, R9).
+% 	p_thinking(L9, R9), fork_free(L9, R10).
+% 	p_thinking(L10, R10), fork_free(L10, R11).
+% 	p_thinking(L11, R11), fork_free(L11, R12).
+% 	p_thinking(L12, R12), fork_free(L12, R13).
+% 	p_thinking(L13, R13), fork_free(L13, R14).
+% 	p_thinking(L14, R14), fork_free(L14, R15).
+% 	p_thinking(L15, R15), fork_free(L15, R0).
+% 	      }).
+% +++++++++++++++++++++++
+set.use.
+state_space.use.
+n(0), t(0).
+run@@Ret = run(Rs, {$ini[]}), n($n) :- $nn = $n+1 |
+    Ret = exp0(Rs, s(ID, {$ini[]}),
+	       state_space.state_map_find(state_space.state_map_init, {$ini[]}, ID), set.init, set.init), n($nn).
+
+exp0@@Ret = exp0(Rs, S0, Map, Ss, Ts), S0=s($id, {$ini[]}) :- int($id) |
+    Ret = exp(Rs, [s($id, {$ini[]})], Map, set.insert(Ss, $id), Ts), ini($id).
+
+exp@@Ret = exp(Rs, S0, Map, Ss, Ts), S0=[s($id, {$src[]})|Stk] :- int($id) |
+    Ret = suc(R, Stk, Exp, p($id, {$src[]}), Map, Ss, Ts),
+    Exp = state_space.react_nd_set(Rs, {$src[]}, R).
+
+exp_@@Ret = exp({$rs[], @rs}, [], Map, Ss, Ts), ini(I) :-
+    Ret = state_space(I, Map, Ss, Ts).
+
+suc@@Ret = suc(Rs, Stk, [{$dest[]}|Suc], Src, Map, Ss, Ts) :-
+    M = state_space.state_map_find(Map, {$dest[]}, ID),
+    Ret = ns0(Rs, Stk, Suc, Src, p(ID, {$dest[]}), M, Ss, Ts).
+
+suc_@@Ret = suc(Rs, Stk, [], p($id, {$src[]}), Map, Ss, Ts) :- int($id) |
+    Ret = exp(Rs, Stk, Map, Ss, Ts).
+
+ns0@@Ret = ns0(Rs, Stk, Suc, Src, p($d, D), Map, Ss, Ts) :- int($d) |
+    Ret = ns(Rs, Stk, Suc, Res, Src, p($d, D), Map, S, Ts),
+    S = set.find(Ss, $d, Res).
+
+ns@@Ret = ns(Rs, Stk, Suc, some, p($s, Src), p($d, Dst), Map, Ss, Ts) :-
+    int($s), int($d) |
+    Ret = nt(Rs, Stk, Suc, Res, p($s, Src), p($d, Dst), Map, Ss, T),
+    T = set.find(Ts, '.'($s, $d), Res).
+
+ns_@@Ret = ns(Rs, Stk, Suc, none, p($s, Src), p($d, Dst), Map, Ss, Ts), n($n), t($t) :-
+    int($s), int($d), $nn=$n+1, $tt=$t+1|
+    Ret = suc(Rs, [s($d, Dst)|Stk], Suc, p($s, Src), Map, S, T),
+    S = set.insert(Ss, $d), T = set.insert(Ts, '.'($s, $d)),
+    n($nn), t($tt).
+
+nt@@Ret = nt(Rs, Stk, Suc, some, Src, p($d, {$dest[]}), Map, Ss, Ts) :-
+    int($d) |
+    Ret = suc(Rs, Stk, Suc, Src, Map, Ss, Ts).
+
+nt_@@Ret = nt(Rs, Stk, Suc, none, p($s, Src), p(D, {$dest[]}), Map, Ss, Ts), t($t) :-
+    int($s), $tt=$t+1 |
+    Ret = suc(Rs, Stk, Suc, p($s, Src), Map, Ss, set.insert(Ts, '.'($s, D))), t($tt).

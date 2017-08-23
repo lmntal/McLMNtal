@@ -1,0 +1,93 @@
+
+set.use.
+state_space.use.
+
+/*
+:- uniq |
+	res = interpret({a(1), a(2), a(3)}, {b(2) :- c(2).}, [congruence({a(!X)}, {b(!X)})]).
+*/
+
+:- uniq |
+	res = interpret(
+		{
+			// 2x + x^2 + 3x + 1
+			res = add(term(2, 1), add(term(1, 2), add(term(3, 1), term(1, 0)))).
+		},
+		{
+			R = add(term(A, X), term(B, Y)) :- X =:= Y, C = A + B | R = term(C, X).
+		},
+		[
+			congruence({!R0 = add(!A0, add(!B0, !C0))}, {!R0 = add(add(!A0, !B0), !C0)}),
+			congruence({!R1 = add(!X0, !Y0)}, {!R1 = add(!Y0, !X0)})
+		]).
+
+
+R = interpret(Process, RuleSet, Congruence) :-
+	R = interpret_loop(Process, RuleSet, make_congruence_rules(Congruence)).
+
+R = interpret_loop(Process, RuleSet, CongRules) :-
+	R = exec_1step({}, get_states(run(CongRules, Process, L)), RuleSet, L).
+
+R = make_congruence_rules(Congruences) :-
+	R = make_congruence_rules_inner(Congruences, {}).
+R = make_congruence_rules_inner([], {$p}) :- R = {$p}.
+R = make_congruence_rules_inner([congruence({$lhs[]}, {$rhs[]}) | T], {$p}) :-
+	R = make_congruence_rules_inner(T, {$p, ':-'({$rhs[]}, {}, {$lhs[]}), ':-'({$lhs[]}, {}, {$rhs[]})}).
+
+R = get_states(state_space(I, M, S, T)) :- int(I), class(T, "set") |
+	R = get_states_inner(M, set.to_list(S)).
+R = get_states(state_space(I, M, S, set_empty)) :- int(I) |
+	R = get_states_inner(M, set.to_list(S)).
+R = get_states_inner(M, []) :- class(M, "state_map") |
+	R = [].
+R = get_states_inner(M, [I | T]) :-
+	M2 = state_space.state_map_find(M, I, L),
+	R = [L | get_states_inner(M2, T)].
+
+R = exec_1step(Curr, [], {$p[], @p}, {$q[], @q}) :-
+	R = Curr.
+R = exec_1step({$curr[]}, [{$proc[]} | T], RuleSet, CongRules) :-
+	R = exec_1step_if({$proc[]}, state_space.react_nd_set(RuleSet, {$proc[]}, L), T, L, CongRules).
+R = exec_1step_if(Curr, [], Processes, RuleSet, CongRules) :-
+	R = exec_1step(Curr, Processes, RuleSet, CongRules).
+R = exec_1step_if({$curr[]}, [{$proc} | L], Processes, RuleSet, CongRules) :-
+	R = interpret_loop({$proc}, RuleSet, CongRules),
+	delete_processes(Processes), delete_processes(L).
+
+delete_processes([]) :- .
+delete_processes([{$p[], @p} | T]) :- delete_processes(T).
+
+run@@Ret = run({$p, @p}, {$ini[]}, RetRules) :-
+    Ret = exp0({$p, @p}, s(ID, {$ini[]}), 
+	       state_space.state_map_find(state_space.state_map_init, {$ini[]}, ID), set.init, set.init,
+	       RetRules).
+
+exp0@@Ret = exp0(Rs, s($id, {$ini[]}), M, S, T, RetRules) :- int($id) |
+    Ret = exp(Rs, [s($id, {$ini[]})], M, set.insert(S, $id), T, RetRules), ini($id).
+
+exp1@@Ret = exp({$rs[], @rs}, [], M, S, T, RetRules), ini(I) :-
+    Ret = state_space(I, M, S, T), RetRules = {$rs[], @rs}.
+
+exp2@@Ret = exp(Rss, [s($id, {$src[]})|Stk], M, S, T, RetRules) :- int($id) |
+    Ret = suc(Rs, Stk, state_space.react_nd_set(Rss, {$src[]}, Rs), s0($id, {$src[]}), M, S, T, RetRules).
+
+suc0@@Ret = suc(Rs, Stk, [], s0($id, {$src[]}), M, S, T, RetRules) :- int($id) |
+    Ret = exp(Rs, Stk, M, S, T, RetRules).
+
+suc1@@Ret = suc(Rs, Stk, [{$dest[]}|Suc], Src, M, S, T, RetRules) :-
+    Ret = ns0(Rs, Stk, Suc, Src, s0(ID, {$dest[]}), state_space.state_map_find(M, {$dest[]}, ID), S, T, RetRules).
+
+ns0@@Ret = ns0(Rs, Stk, Suc, Src, s0($id_d, Dest), M, S, T, RetRules) :- int($id_d) |
+    Ret = ns(Rs, Stk, Suc, Res, Src, s0($id_d, Dest), M, set.find(S, $id_d, Res), T, RetRules).
+
+ns1@@Ret = ns(Rs, Stk, Suc, some, s0($id_s, Src), s0($id_d, Des), M, S, T, RetRules) :- int($id_s), int($id_d) |
+    Ret = nt(Rs, Stk, Suc, Res, s0($id_s, Src), s0($id_d, Des), M, S, set.find(T, '.'($id_s, $id_d), Res), RetRules).
+
+ns2@@Ret = ns(Rs, Stk, Suc, none, s0($id_s, Src), s0($id_d, Des), M, S, T, RetRules) :- int($id_s), int($id_d) |
+    Ret = suc(Rs, [s($id_d, Des)|Stk], Suc, s0($id_s, Src), M, set.insert(S, $id_d), set.insert(T, '.'($id_s, $id_d)), RetRules).
+
+nt0@@Ret = nt(Rs, Stk, Suc, some, Src, s0($id_d, {$dest[]}), M, S, T, RetRules) :- int($id_d) |
+    Ret = suc(Rs, Stk, Suc, Src, M, S, T, RetRules).
+
+nt1@@Ret = nt(Rs, Stk, Suc, none, s0($id_s, Src), s0($id_d, {$dest[]}), M, S, T, RetRules) :- int($id_s), int($id_d) |
+    Ret = suc(Rs, Stk, Suc, s0($id_s, Src), M, S, set.insert(T, '.'($id_s, $id_d)), RetRules).
