@@ -1,0 +1,357 @@
+% ************************
+% *  LTL Model Checking  *
+% ************************
+% ++++++++++++++++++++++++++++++++test-case++++++++++++++++++++++++++++++++
+% ++++mutex++++
+% :- uniq |
+%     ret = mc(ba([0, 1], [d(0, true, 0), d(0, !P, 1), d(1, true, 1)], [0], [1]),
+% 	     {
+
+% 	X=wait :- X=rqst.
+% 	X=rqst, mutex :- X=crit.
+% 	X=crit :- X=wait, mutex .
+
+% 	     },
+% 	     {
+
+% 	mutex.
+% 	p(wait, 12).
+% 	p(wait, 11).
+% 	p(wait,10). 
+% 	p(wait,9). 
+% 	p(wait,8).
+% 	p(wait,7).
+% 	p(wait,6).
+% 	p(wait,5).
+% 	p(wait,4). 
+% 	p(wait,3). 
+% 	p(wait,2). 
+% 	p(wait,1).
+
+% 	     }),
+%   pred({crit(!X), crit(!Y)}, {}, !P).
+
+% ++++byzantine++++
+% :- uniq |
+%     ret = mc(ba([0, 1], [d(0, true, 0), d(0, and(not(!A), not(!B)), 1), d(1, and(not(!A), not(!B)), 1)], [0], [1]),
+% 	     {
+
+% shirei(true) :- shirei(true,a).
+% shirei(true) :- shirei(true,b).
+
+% shirei(true,Cmd),i(I),p{ no(N),$p }
+%  :- I=:=N,II=I+1,unary(Cmd)
+%  | shirei(true,Cmd),i(II),p{ no(N),send(Cmd),ret(Cmd),$p }.
+
+% shirei(false),i(I),p{ no(N),$p }
+%  :- I=:=N,II=I+1
+%  | shirei(false),i(II),p{ no(N),send(a),ret(a),$p }.
+% shirei(false),i(I),p{ no(N),$p }
+%  :- I=:=N,II=I+1
+%  | shirei(false),i(II),p{ no(N),send(b),ret(b),$p }.
+
+
+% s(S1,S2) :- S1=:=S2,S2I=S2+1 | s(S1,S2I).
+% s(S1,S2),person(P) :- S2=:=P,S1I=S1+1 | s(S1I,1),person(P).
+
+
+% p{ no(N1),send(Cmd),valid(true),$p1 },p{ no(N2),$p2 },s(M1,M2)
+%  :- N1=:=M1,N2=:=M2,M2I=M2+1,unary(Cmd)
+%  | p{ no(N1),send(Cmd),valid(true),$p1 },p{ no(N2),ret(Cmd),$p2 },s(M1,M2I).
+
+% p{ no(N1),send(Cmd),valid(false),$p1 },p{ no(N2),$p2 },s(M1,M2)
+%  :- N1=:=M1,N2=:=M2,M2I=M2+1,unary(Cmd)
+%  | p{ no(N1),send(Cmd),valid(false),$p1 },p{ no(N2),ret(a),$p2 },s(M1,M2I).
+% p{ no(N1),send(Cmd),valid(false),$p1 },p{ no(N2),$p2 },s(M1,M2)
+%  :- N1=:=M1,N2=:=M2,M2I=M2+1,unary(Cmd)
+%  | p{ no(N1),send(Cmd),valid(false),$p1 },p{ no(N2),ret(b),$p2 },s(M1,M2I).
+
+% p{ ret(a),a(A),$p } :- AI=A+1 | p{ a(AI),$p }.
+% p{ ret(b),b(B),$p } :- BI=B+1 | p{ b(BI),$p }.
+
+
+% p{ no(N),valid(true),a(A),b(B),send(Cmd) },sumA(SA),person(P),s(S,1)
+%  :- S=:=P,A>=B,SAI=SA+1,int(N),unary(Cmd)
+%  | sumA(SAI),person(P),s(S,1).
+% p{ no(N),valid(true),a(A),b(B),send(Cmd) },sumB(SB),person(P),s(S,1)
+%  :- S=:=P,A<B, SBI=SB+1,int(N),unary(Cmd)
+%  | sumB(SBI),person(P),s(S,1).
+
+% 	     },
+% 	     {
+% 	s(1, 1).sumA(0),sumB(0).i(1).
+
+//12
+//true(shirei). person(12). p{false(valid). b(0). a(0). no(11). }, p{false(valid). b(0). a(0). no(10). }, p{false(valid). b(0). a(0). no(9). }, p{false(valid). b(0). a(0). no(8). }, p{false(valid). b(0). a(0). no(7). }, p{false(valid). b(0). a(0). no(6). }, p{false(valid). b(0). a(0). no(5). }, p{false(valid). b(0). a(0). no(4). }, p{false(valid). b(0). a(0). no(3). }, p{false(valid). b(0). a(0). no(2). }, p{false(valid). b(0). a(0). no(1). }.
+
+% //11
+% //true(shirei). person(11). p{false(valid). b(0). a(0). no(10). }, p{false(valid). b(0). a(0). no(9). }, p{false(valid). b(0). a(0). no(8). }, p{false(valid). b(0). a(0). no(7). }, p{false(valid). b(0). a(0). no(6). }, p{false(valid). b(0). a(0). no(5). }, p{false(valid). b(0). a(0). no(4). }, p{false(valid). b(0). a(0). no(3). }, p{false(valid). b(0). a(0). no(2). }, p{false(valid). b(0). a(0). no(1). }.
+
+% //10
+% //true(shirei). person(10). p{false(valid). b(0). a(0). no(9). }, p{false(valid). b(0). a(0). no(8). }, p{false(valid). b(0). a(0). no(7). }, p{false(valid). b(0). a(0). no(6). }, p{false(valid). b(0). a(0). no(5). }, p{false(valid). b(0). a(0). no(4). }, p{false(valid). b(0). a(0). no(3). }, p{false(valid). b(0). a(0). no(2). }, p{false(valid). b(0). a(0). no(1). }.
+% 	     }),
+%   pred({sumA(0), sumB('$x')}, {'>'('$x', 0)}, !A),
+%   pred({sumB(0), sumA('$x')}, {'>'('$x', 0)}, !B).
+% ++++rabbit+++++
+% :- uniq |
+%     ret = mc(ba([0, 1], [d(0, true, 0), d(0, and(and(!Q, !R), !P), 1), d(1, true, 1)], [0], [1]),
+% 	     {
+% 	E=[x,free |F] :- E=[free,x |F].
+% 	E=[x,o,free |F] :- E=[free,o,x |F].
+% 	E=[free,o |F] :- E=[o,free |F].
+% 	E=[free,x,o |F] :- E=[o,x,free |F].
+% 	     },
+% 	     {
+% //10
+% //	init([x,x,x,x,x,x,x,x,x,free,o,o,o,o,o,o,o,o,o]).
+% //9
+% //	init([x,x,x,x,x,x,x,x,x,free,o,o,o,o,o,o,o,o,o]).
+% //8
+% 	init([x,x,x,x,x,x,x,x,free,o,o,o,o,o,o,o,o]).
+% 	     }),
+% pred({!E0=[o,free,x |!F0]}, {}, !P),
+% pred({!E1=[o,x |!F1]}, {}, !Q),
+% pred({!E2=[x,o |!F2]}, {}, !R).
+% +++++phiM++++
+% :- uniq |
+%     ret = mc(ba([0, 1], [d(0, true, 0), d(0, and(not(!P), !Q), 1), d(1, not(!P), 1)], [0], [1]),
+% 	     {
+% 	hungry__ @@ {phi=I, state=thinking, $p} :- int(I) |
+%             {phi=I, state=hungry,   $p}.
+% 	grab1stL @@ {phi=I, state=hungry,   noOfSticks=0}, chopstick(J) :- J=:=I |
+%             {phi=I, state=hungry,   noOfSticks=1}.
+% 	grab1stR @@ {phi=I, state=hungry,   noOfSticks=0}, n(N), chopstick(J) :- J=:=I mod N + 1 |
+%             {phi=I, state=hungry,   noOfSticks=1}, n(N).
+% 	grab2ndL @@ {phi=I, state=hungry,   noOfSticks=1}, chopstick(J) :- J=:=I |
+%             {phi=I, state=eating,   noOfSticks=2}.
+% 	grab2ndR @@ {phi=I, state=hungry,   noOfSticks=1}, n(N), chopstick(J) :- J=:=I mod N + 1 |
+%             {phi=I, state=eating,   noOfSticks=2}, n(N).
+% 	stopEat_ @@ {phi=I, state=eating,   noOfSticks=J}, n(N) :- int(J), C=(I mod N)+1 |
+%             {phi=I, state=thinking, noOfSticks=0}, n(N), chopstick(I), chopstick(C).
+% 	     },
+
+% 	     {
+
+% n(7). chopstick(7). chopstick(6). chopstick(5). chopstick(4). chopstick(3). chopstick(2). chopstick(1). {phi(7). state(thinking). noOfSticks(0). }, {phi(6). state(thinking). noOfSticks(0). }, {phi(5). state(thinking). noOfSticks(0). }, {phi(4). state(thinking). noOfSticks(0). }, {phi(3). state(thinking). noOfSticks(0). }, {phi(2). state(thinking). noOfSticks(0). }, {phi(1). state(thinking). noOfSticks(0). }.
+
+
+
+% //n(6). chopstick(6). chopstick(5). chopstick(4). chopstick(3). chopstick(2). chopstick(1). {phi(6). state(thinking). noOfSticks(0). }, {phi(5). state(thinking). noOfSticks(0). }, {phi(4). state(thinking). noOfSticks(0). }, {phi(3). state(thinking). noOfSticks(0). }, {phi(2). state(thinking). noOfSticks(0). }, {phi(1). state(thinking). noOfSticks(0). }.
+
+% % {n(5). chopstick(5). chopstick(4). chopstick(3). chopstick(2). chopstick(1). {phi(5). state(thinking). noOfSticks(0). }, {phi(4). state(thinking). noOfSticks(0). }, {phi(3). state(thinking). noOfSticks(0). }, {phi(2). state(thinking). noOfSticks(0). }, {phi(1). state(thinking). noOfSticks(0). }
+% % }
+% 	     }
+% 	     ),
+%   pred({{phi(1), state(eating), '$s'}}, {}, !P),
+%   pred({{phi(1), state(hungry), '$s'}}, {}, !Q).
+
+% ++++++++++++++++++++++++++++++++test-case++++++++++++++++++++++++++++++++
+set.use.
+state_space.use.
+
+Ret = mc(A, Ruleset, Graph) :-
+    Ret = mc0, ret(A), model(Ruleset, Graph).
+
+% empty---------
+empty@@Ret = mc0, Ret0=ba(Q, D, [$q0|Q0], F), model(Ruleset, {$graph[]}) :- int($q0) |
+    Ret = mc1(Q0), Ret0 = ba(Q, D, $q0, F), dfs1, hash1(set.init), hash2(set.init), on_stack(set.init), stack1([['.'(I,$q0)]]), model(Ruleset, state_space.state_map_find(state_space.state_map_init, {$graph[]}, I)).
+
+% % dfs1-----------------------------------------------------------------------
+dfs1@@dfs1, stack1([['.'($s,$q)|T]|T0]), hash1(H0), on_stack(H1):- int($s), int($q)|
+    dfs1_foreach(succ($s, $q)), stack1([['.'($s, $q)|T]|T0]), hash1(set.insert(H0, '.'($s, $q))), on_stack(set.insert(H1,'.'($s,$q))), st_([]).
+
+dfs1, stack1([[],['.'($s,$q)|T]|T0]) :- int($s), int($q) |
+    dfs1_acc($q, [], f), stack1([['.'($s,$q)|T]|T0]).
+
+dfs1, stack1([[]]) :-
+    no_acceptance_cycle_exists.
+
+dfs1_acc(t), stack1([['.'($s,$q)|T]|T0]):- int($s),int($q)|
+    dfs2, stack2([['.'($s,$q)]]), stack1([['.'($s,$q)|T]|T0]).
+
+dfs1_acc(f) :- dfs1_pop.
+dfs1_pop, stack1([['.'($s,$q)|T]|T0]), on_stack(H) :- int($s),int($q) |
+    dfs1, stack1([T|T0]), on_stack(set.erase(H,'.'($s,$q))).
+
+dfs1_foreach(['.'($s,$q)|T]), hash1(H0) :- int($s), int($q)|
+    dfs1_foreach_inner(['.'($s,$q)|T],Res), hash1(set.find(H0, '.'($s,$q), Res)).
+
+dfs1_foreach([]), st_(St_), stack1(St) :-
+    dfs1, stack1([St_|St]).
+
+dfs1_foreach_inner(['.'($s,$q)|T], none), st_(St) :- int($s),int($q)|
+    dfs1_foreach(T), st_(['.'($s,$q)|St]).
+
+dfs1_foreach_inner(['.'($s,$q)|T],some) :- int($s), int($q) |
+    dfs1_foreach(T).
+
+% dfs2---------------------------------------------------------------------
+dfs2, stack2([['.'($s,$q)|T]|T0]), hash2(H0) :-int($s),int($q)|
+    dfs2_foreach(succ($s,$q)),stack2([['.'($s,$q)|T]|T0]),hash2(set.insert(H0, '.'($s,$q))), st_([]).
+
+dfs2, stack2([[]]),  :- dfs1_pop.
+    
+dfs2, stack2([[],['.'($s,$q)|T]|T0]) :- int($s),int($q) |
+    dfs2, stack2([T|T0]).
+
+dfs2_foreach(['.'($s,$q)|T]),on_stack(H) :- int($s),int($q)|
+    dfs2_foreach_inner0(['.'($s,$q)|T],Res),on_stack(set.find(H,'.'($s,$q),Res)).
+
+dfs2_foreach([]), st_(St_), stack2(St) :-
+    dfs2, stack2([St_|St]).
+
+dfs2_foreach_inner0(S, none) :- dfs2_foreach2(S).
+dfs2_foreach_inner0(['.'($s,$q)|$g], some) :- int($s),int($q),ground($g)|
+terminate0([]).
+
+dfs2_foreach2(['.'($s,$q)|T]), hash2(H0) :- int($s), int($q)|
+    dfs2_foreach_inner(['.'($s,$q)|T],Res), hash2(set.find(H0, '.'($s,$q), Res)).
+
+dfs2_foreach_inner(['.'($s,$q)|T], none), st_(St) :- int($s),int($q) |
+    dfs2_foreach(T), st_(['.'($s,$q)|St]).
+
+dfs2_foreach_inner(['.'($s,$q)|T],some) :- int($s), int($q) |
+    dfs2_foreach(T).
+
+% terminate--------------------------------------------------------------------
+
+terminate0(L), stack2([['.'($s, Q)|$g]|T_]), model(Rs, M) :- int($s),ground($g)|
+    terminate0(['.'(Res,Q)|L]), stack2(T_), model(Rs, state_space.state_map_find(M,$s,Res)).
+
+terminate0(L), stack2([]) :-
+    terminate1(L).
+
+terminate1(L), stack1([['.'($s, Q)|$g]|T_]), model(Rs, M) :- int($s),ground($g)|
+    terminate1(['.'(Res,Q)|L]), stack1(T_), model(Rs, state_space.state_map_find(M,$s,Res)).
+
+terminate1(L), stack1([]) :- counterexample(L).
+
+
+% dfs1_acc---------------------------------------------------------------------
+dfs1_acc($q, R, $b), Ret=ba(Q, D, Q0, [$f|T]) :- $q=$f,unary($b)|
+    dfs1_acc($q, [$f|R], t), Ret=ba(Q,D,Q0,T).
+
+dfs1_acc($q, R, B), Ret=ba(Q, D, Q0, [$f|T]) :- $q=\=$f | dfs1_acc($q, [$f|R], B), Ret=ba(Q,D,Q0,T).
+
+dfs1_acc($q,R,B),Ret=ba(Q,D,Q0,[]):- int($q)| dfs1_acc(B), Ret=ba(Q,D,Q0,R).
+% succ--------------------------------------------------------------------------
+succ@@Ret = succ($s, $q), model(Rs, M) :- int($s), int($q) |
+    Ret = succ1($s, $q, R), model(Rs, state_space.state_map_find(M, $s, R)).
+
+succ1@@Ret = succ1(S_, Q, {$g[]}), model(Rs, M) :- 
+    Ret = succ1(S_, Q, [], state_space.react_nd_set(Rs, {$g[]}, Rs_)), model(Rs_, M).
+
+Ret = succ1(S, Q, L, [{$g[]}|T]), model(Rs, M) :-
+    Ret = succ1(S, Q, [I|L], T), model(Rs, state_space.state_map_find(M, {$g[]}, I)).
+
+copy@@Ret = succ1($s,$q,[],[]), model(Rs, M), Ret__=ba(Q_, D, Q0, F) :-int($s), int($q) |
+    Ret = prod([], [], [$s], basucc($q, D1, R, [])), model(Rs, state_space.state_map_find(M, $s, R)), Ret__=ba(Q_, D2, Q0, F),
+    copy_props(D, D1, D2).
+
+copy@@Ret = succ1($s, $q, L, []), model(Rs, M), Ret__=ba(Q_, D, Q0, F) :-int($s), int($q) |
+    Ret = prod([], [], L, basucc($q, D1, R, [])), model(Rs, state_space.state_map_find(M, $s, R)), Ret__=ba(Q_, D2, Q0, F),
+    copy_props(D, D1, D2).
+
+
+Ret = prod(R, [], [], $s) :- ground($s) | Ret = R.
+Ret = prod(R, Q, [$s|T], []) :- int($s) | Ret = prod(R, [], T, Q).
+Ret = prod(R, Q, [$s|T], [$q|T_]) :- int($s),int($q) |
+    Ret = prod(['.'($s,$q)|R], [$q|Q], [$s|T], T_).
+
+
+copy_props([], D1, D2) :-
+    D1 = [], D2 = [].
+copy_props([d($src, P, $dst) | T], D1, D2) :- int($src), int($dst) |
+    D1 = [d($src, P1, $dst) | T1], D2 = [d($src, P2, $dst) | T2],
+    copy_prop(P, P1, P2), copy_props(T, T1, T2).
+
+copy_prop(true, P1, P2) :-
+    P1 = true, P2 = true.
+copy_prop(false, P1, P2) :-
+    P1 = false, P2 = false.
+copy_prop(not(X), P1, P2) :-
+    P1 = not(L1), P2 = not(L2),
+    copy_prop(X, L1, L2).
+copy_prop($x, P1, P2) :- hlink($x) |
+    P1 = $x, P2 = $x.
+copy_prop(and(X, Y), P1, P2) :-
+    P1 = and(L1, L2), P2 = and(L1_, L2_),
+    copy_prop(X, L1, L2),
+    copy_prop(Y, L1_, L2_).
+copy_prop(or(X, Y), P1, P2) :-
+    P1 = not(and(not(L1), not(L2))), P2 = not(and(not(L1_), not(L2_))),
+    copy_prop(X, L1, L2),
+    copy_prop(Y, L1_, L2_).
+copy_prop(imply(X, Y), P1, P2) :-
+    P1 = not(and(L1, not(L2))), P2 = not(and(L1_, not(L2_))),
+    copy_prop(X, L1, L2),
+    copy_prop(Y, L1_, L2_).
+
+
+delete_prop(true) :- .
+delete_prop(false) :- .
+delete_prop(not(X)) :- delete_prop(X).
+delete_prop($x) :- hlink($x) | .
+delete_prop(and(X, Y)) :- delete_prop(X), delete_prop(Y).
+delete_prop(or(X, Y)) :- delete_prop(X), delete_prop(Y).
+delete_prop(imply(X, Y)) :- delete_prop(X), delete_prop(Y).
+
+
+% basucc----------------------------------------------------------------------
+Ret = basucc($q, [d($n, F, $nn)|T], {$s[]}, RetS) :-
+    $n=:=$q, int($nn) |
+    Ret = basucc($q, T, {$s[]}, RetS, inner_basucc(F, {$s[]}, $nn)).
+
+Ret = basucc($q, [d($n, F, $nn)|T], S, RetS) :-
+    $q =\= $n, int($nn) |
+    Ret = basucc($q, T, S, RetS), delete_prop(F).
+
+Ret = basucc($q, [], {$s[]}, RetS) :-
+    int($q) |
+    Ret = RetS.
+
+Ret = basucc(Q, D, S, RetS, true(N)) :-
+    Ret = basucc(Q, D, S, [N|RetS]).
+
+Ret = basucc(Q, D, S, RetS, fail($n)) :-
+    int($n) |
+    Ret = basucc(Q, D, S, RetS).
+
+% inner_basucc----------------------------------------------------------------------
+Ret = inner_basucc(and(X, Y), {$s[]}, $n) :- int($n) |
+    Ret = and_inner_basucc(inner_basucc(X, {$s[]}, $n), inner_basucc(Y, {$s[]}, $n)).
+
+Ret = and_inner_basucc(true($n), true($m)) :- int($n), int($m) |
+    Ret = true($n).
+Ret = and_inner_basucc(true($n), fail($m)) :- int($n), int($m) |
+    Ret = fail($n).
+Ret = and_inner_basucc(fail($n), true($m)) :- int($n), int($m) |
+    Ret = fail($n).
+Ret = and_inner_basucc(fail($n), fail($m)) :- int($n), int($m) |
+    Ret = fail($n).
+
+Ret = not(true(N)) :-
+	Ret = fail(N).
+Ret = not(fail(N)) :-
+	Ret = true(N).
+
+Ret = inner_basucc(not(X), S, N) :-
+	Ret = not(inner_basucc(X, S, N)).
+
+Ret = inner_basucc($x, S, N), pred({$h[]}, {$g[]}, $y) :- hlink($x), $x == $y |
+    Ret = t_inner_basucc(state_space.react_nd_set({':-'({$h[]}, {$g[]}, {$h[]})}, S, p($x)), N).
+
+Ret = inner_basucc($x, S, N), p($y) = Pred :- hlink($x), $x == $y |
+    Ret = t_inner_basucc(state_space.react_nd_set(Pred, S, p($x)), N).
+
+Ret = inner_basucc(true, {$s[]}, N) :-
+    Ret = true(N).
+
+Ret = inner_basucc(false, {$s[]}, N) :-
+    Ret = fail(N).
+
+Ret = t_inner_basucc([], N) :-
+    Ret = fail(N).
+Ret = t_inner_basucc([{$g[]}|T], N) :-
+    Ret = true(N), free(T).
+
