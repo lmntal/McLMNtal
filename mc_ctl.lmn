@@ -1,0 +1,518 @@
+% **************************
+% *   CTL Model Checking   *
+% **************************
+% +++++rabbit++++AF
+% :- uniq |
+%     ret = mc(ctl(not(af(and(p(!P), and(not(p(!Q)), not(p(!R))))))),
+% 	     {
+% 	E=[x,free |F] :- E=[free,x |F].
+% 	E=[x,o,free |F] :- E=[free,o,x |F].
+% 	E=[free,o |F] :- E=[o,free |F].
+% 	E=[free,x,o |F] :- E=[o,x,free |F].
+% 	     },
+% 	     {
+% //8
+% //	init([x,x,x,x,x,x,x,x,free,o,o,o,o,o,o,o,o]).
+% //6
+% 	init([x,x,x,x,x,x,free,o,o,o,o,o,o])
+% //5
+% //	init([x,x,x,x,x,free,o,o,o,o,o])
+% //4
+% //	init([x,x,x,x,free,o,o,o,o])
+% 	     }),
+% pred({!E0=[o,free,x |!F0]}, {}, !P),
+% pred({!E1=[o,x |!F1]}, {}, !Q),
+% pred({!E2=[x,o |!F2]}, {}, !R).
+% +++++byzantine++++AG(EF)
+% :- uniq |
+%     ret = mc(ctl(ag(ef(or(p(!A), p(!B))))),
+% 	     {
+% shirei(true) :- shirei(true,a).
+% shirei(true) :- shirei(true,b).
+
+% shirei(true,Cmd),i(I),p{ no(N),$p }
+%  :- I=:=N,II=I+1,unary(Cmd)
+%  | shirei(true,Cmd),i(II),p{ no(N),send(Cmd),ret(Cmd),$p }.
+
+% shirei(false),i(I),p{ no(N),$p }
+%  :- I=:=N,II=I+1
+%  | shirei(false),i(II),p{ no(N),send(a),ret(a),$p }.
+% shirei(false),i(I),p{ no(N),$p }
+%  :- I=:=N,II=I+1
+%  | shirei(false),i(II),p{ no(N),send(b),ret(b),$p }.
+
+
+% s(S1,S2) :- S1=:=S2,S2I=S2+1 | s(S1,S2I).
+% s(S1,S2),person(P) :- S2=:=P,S1I=S1+1 | s(S1I,1),person(P).
+
+
+% p{ no(N1),send(Cmd),valid(true),$p1 },p{ no(N2),$p2 },s(M1,M2)
+%  :- N1=:=M1,N2=:=M2,M2I=M2+1,unary(Cmd)
+%  | p{ no(N1),send(Cmd),valid(true),$p1 },p{ no(N2),ret(Cmd),$p2 },s(M1,M2I).
+
+% p{ no(N1),send(Cmd),valid(false),$p1 },p{ no(N2),$p2 },s(M1,M2)
+%  :- N1=:=M1,N2=:=M2,M2I=M2+1,unary(Cmd)
+%  | p{ no(N1),send(Cmd),valid(false),$p1 },p{ no(N2),ret(a),$p2 },s(M1,M2I).
+% p{ no(N1),send(Cmd),valid(false),$p1 },p{ no(N2),$p2 },s(M1,M2)
+%  :- N1=:=M1,N2=:=M2,M2I=M2+1,unary(Cmd)
+%  | p{ no(N1),send(Cmd),valid(false),$p1 },p{ no(N2),ret(b),$p2 },s(M1,M2I).
+
+% p{ ret(a),a(A),$p } :- AI=A+1 | p{ a(AI),$p }.
+% p{ ret(b),b(B),$p } :- BI=B+1 | p{ b(BI),$p }.
+
+
+% p{ no(N),valid(true),a(A),b(B),send(Cmd) },sumA(SA),person(P),s(S,1)
+%  :- S=:=P,A>=B,SAI=SA+1,int(N),unary(Cmd)
+%  | sumA(SAI),person(P),s(S,1).
+% p{ no(N),valid(true),a(A),b(B),send(Cmd) },sumB(SB),person(P),s(S,1)
+%  :- S=:=P,A<B, SBI=SB+1,int(N),unary(Cmd)
+%  | sumB(SBI),person(P),s(S,1).
+% 	     },
+% 	     {
+% 	s(1, 1).sumA(0),sumB(0).i(1).
+% true(shirei). person(3). p{false(valid). b(0). a(0). no(2). }, p{false(valid). b(0). a(0). no(1). }.
+
+% % true(shirei). person(4). p{false(valid). b(0). a(0). no(3). }, p{false(valid). b(0). a(0). no(2). }, p{false(valid). b(0). a(0). no(1). }
+
+% //true(shirei). person(5). p{false(valid). b(0). a(0). no(4). }, p{false(valid). b(0). a(0). no(3). }, p{false(valid). b(0). a(0). no(2). }, p{false(valid). b(0). a(0). no(1). }
+% 	     }),
+%   pred({sumA(0), sumB('$x')}, {'>'('$x', 0)}, !A),
+%   pred({sumB(0), sumA('$x')}, {'>'('$x', 0)}, !B).
+
+
+% ++++++mutex+++++++++++++++spec:AG(not(!P))
+% :- uniq |
+%     ret = mc(ctl(ag(not(p(!P)))),
+% 	     {
+
+% 	X=wait :- X=rqst.
+% 	X=rqst, mutex :- X=crit.
+% 	X=crit :- X=wait, mutex .
+
+% 	     },
+% 	     {
+% 	mutex.
+% 	p(wait,12).
+% 	p(wait,11).
+% 	p(wait,10). 
+% 	p(wait,9). 
+% 	p(wait,8).
+% 	p(wait,7).
+% 	p(wait,6).
+% 	p(wait,5).
+% 	p(wait,4). 
+% 	p(wait,3). 
+% 	p(wait,2). 
+% 	p(wait,1).
+% 	     }),
+%   pred({crit(!X), crit(!Y)}, {}, !P).
+
+% +++++phiM+++++
+
+:- uniq |
+    ret = mc(ctl(ag(imply(p(!P), af(p(!Q))))),
+	     {
+	hungry__ @@ {phi=I, state=thinking, $p} :- int(I) |
+            {phi=I, state=hungry,   $p}.
+	grab1stL @@ {phi=I, state=hungry,   noOfSticks=0}, chopstick(J) :- J=:=I |
+            {phi=I, state=hungry,   noOfSticks=1}.
+	grab1stR @@ {phi=I, state=hungry,   noOfSticks=0}, n(N), chopstick(J) :- J=:=I mod N + 1 |
+            {phi=I, state=hungry,   noOfSticks=1}, n(N).
+	grab2ndL @@ {phi=I, state=hungry,   noOfSticks=1}, chopstick(J) :- J=:=I |
+            {phi=I, state=eating,   noOfSticks=2}.
+	grab2ndR @@ {phi=I, state=hungry,   noOfSticks=1}, n(N), chopstick(J) :- J=:=I mod N + 1 |
+            {phi=I, state=eating,   noOfSticks=2}, n(N).
+	stopEat_ @@ {phi=I, state=eating,   noOfSticks=J}, n(N) :- int(J), C=(I mod N)+1 |
+            {phi=I, state=thinking, noOfSticks=0}, n(N), chopstick(I), chopstick(C).
+	     },
+
+ 	     {
+n(6). chopstick(6). chopstick(5). chopstick(4). chopstick(3). chopstick(2). chopstick(1). {phi(6). state(thinking). noOfSticks(0). }, {phi(5). state(thinking). noOfSticks(0). }, {phi(4). state(thinking). noOfSticks(0). }, {phi(3). state(thinking). noOfSticks(0). }, {phi(2). state(thinking). noOfSticks(0). }, {phi(1). state(thinking). noOfSticks(0). }.
+//n(5). chopstick(5). chopstick(4). chopstick(3). chopstick(2). chopstick(1). {phi(5). state(thinking). noOfSticks(0). }, {phi(4). state(thinking). noOfSticks(0). }, {phi(3). state(thinking). noOfSticks(0). }, {phi(2). state(thinking). noOfSticks(0). }, {phi(1). state(thinking). noOfSticks(0). }.
+//n(4). chopstick(4). chopstick(3). chopstick(2). chopstick(1). {phi(4). state(thinking). noOfSticks(0). }, {phi(3). state(thinking). noOfSticks(0). }, {phi(2). state(thinking). noOfSticks(0). }, {phi(1). state(thinking). noOfSticks(0). }.
+
+  	     }
+  	     ),
+  pred({{phi(1), state(eating), '$s'}}, {}, !P),
+  pred({{phi(1), state(hungry), '$s'}}, {}, !Q).
+
+% +++++++++++++++++++++
+
+% test-case 5(microwave) res:true----------------------------------
+% :- uniq |
+%     ret = mc(ctl(ag(ef(p(!X)))),
+% 	     {
+% 	':-'({-start, -close, -heat, -error, -init}, {}, {start, -close, -heat, error, -init}),
+% 	':-'({-start, -close, -heat, -error, -init}, {}, {-start, close, -heat, -error, init}),
+% 	':-'({start, -close, -heat, error, -init}, {}, {start, close, -heat, error, -init}),
+% 	':-'({-start, close, -heat, -error, init}, {}, {-start, -close, -heat, -error, -init}),
+% 	':-'({-start, close, -heat, -error, init}, {}, {start, close, -heat, -error, -init}),
+% 	':-'({-start, close, heat, -error, -init}, {}, {-start, -close, -heat, -error, -init}),
+% 	':-'({-start, close, heat, -error, -init}, {}, {-start, close, heat, -error, -init}),
+% 	':-'({-start, close, heat, -error, -init}, {}, {-start, close, -heat, -error, init}),
+% 	':-'({start, close, -heat, error, -init}, {}, {start, -close, -heat, error, -init}),
+% 	':-'({start, close, -heat, error, -init}, {}, {-start, close, -heat, -error, init}),
+% 	':-'({start, close, -heat, -error, -init}, {}, {start, close, heat, -error, -init}),
+% 	':-'({start, close, heat, -error, -init}, {}, {-start, close, heat, -error, -init})
+% 	     },
+% 	     {-start, close, -heat, -error, init}),
+%   pred({-start, close, -heat, -error, init}, {}, !X).
+% ----------------------------------------------------------
+% test-case 7(microwave) res:false----------------------------------
+% :- uniq |
+%     ret = mc(ctl( ag(imply(p(!S), af(p(!Q))))),
+% 	     {
+% 	':-'({-start, -close, -heat, -error}, {}, {start, -close, -heat, error}),
+% 	':-'({-start, -close, -heat, -error}, {}, {-start, close, -heat, -error}),
+% 	':-'({start, -close, -heat, error}, {}, {start, close, -heat, error}),
+% 	':-'({-start, close, -heat, -error}, {}, {-start, -close, -heat, -error}),
+% 	':-'({-start, close, -heat, -error}, {}, {start, close, -heat, -error}),
+% 	':-'({-start, close, heat, -error}, {}, {-start, -close, -heat, -error}),
+% 	':-'({-start, close, heat, -error}, {}, {-start, close, heat, -error}),
+% 	':-'({-start, close, heat, -error}, {}, {-start, close, -heat, -error}),
+% 	':-'({start, close, -heat, error}, {}, {start, -close, -heat, error}),
+% 	':-'({start, close, -heat, error}, {}, {-start, close, -heat, -error}),
+% 	':-'({start, close, -heat, -error}, {}, {start, close, heat, -error}),
+% 	':-'({start, close, heat, -error}, {}, {-start, close, heat, -error})
+% 	     },
+% 	     {-start, -close, -heat, -error}),
+%   pred({start}, {}, !S),
+%   pred({heat}, {}, !Q).
+
+% ++++++++++++++++++++++++++++++++test-case++++++++++++++++++++++++++++++++
+set.use.
+state_space.use.
+
+
+
+Ret = mc(Ctl, Ruleset, Graph) :-
+    Ret = mc0(Ctl, run(Ruleset, Graph)).
+
+start_mc@@Ret = mc0(Ctl, state_space(Ini,M,S,T)) :-
+    Ret = mc1(Ini, Ctl, state_space(M,S,T)).
+
+Ret = result(Set, some, SS) :-
+    Ret = result(true), set.free(Set), free(SS).
+Ret = result(Set, none, SS) :-
+    Ret = result(false), set.free(Set), free(SS).
+% labeling algorithm---------------------------------------
+finish@@Ret = mc1(Ini, ctl(sat(S)), SS) :- 
+    Ret = result(set.find(S, Ini, Res), Res, SS).
+
+true@@Ret = mc1(Ini, Ctl, state_space(M, S, T)), Ret_=true :-
+    Ret = mc1(Ini, Ctl, state_space(M, set.copy(S, S_), T)), Ret_=sat(S_).
+
+p@@Ret = mc1(Ini, Ctl, state_space(M, S, T)), R = p($x), pred({$h[]}, {$g[]}, $y) :- 
+    hlink($x), hlink($y), $x==$y |
+    Ret = mc_(Ini, Ctl), R = s_p(set.init, set.to_list(S_), {':-'({$h[]}, {$g[]}, {$h[]})}, state_space(M, set.copy(S, S_), T)), pred({$h[]}, {$g[]}, $y).
+
+not@@Ret = mc1(Ini, Ctl, state_space(M, S, T)), Ret_=not(sat(S_)) :-
+    Ret = mc_(Ini, Ctl, state_space(M, set.copy(S, R), T)), Ret_=s_not(set.diff(R, R_), set.copy(S_, R_)).
+
+or@@Ret = mc1(Ini, Ctl, SS), Ret_=or(sat(S0), sat(S1)) :-
+    Ret = mc1(Ini, Ctl, SS), Ret_=sat(set.union(S0, S1)).
+
+ex@@Ret = mc1(Ini, Ctl, state_space(M, S, T)), Ret_ = ex(sat(S_)) :-
+    Ret = mc_(Ini, Ctl), Ret_ = s_ex(set.init, set.to_list(T_), S_, state_space(M, S, set.copy(T, T_))).
+
+eu@@Ret = mc1(Ini, Ctl, state_space(M, S, T)), Ret_=eu(sat(S0), sat(S1)) :-
+    Ret = mc_(Ini, Ctl), Ret_=s_eu(set.copy(S1, S1_), S0, set.to_list(S1_), set.to_list(T_), state_space(M, S, set.copy(T, T_))).
+
+eg@@Ret=mc1(Ini, Ctl, state_space(M, S, T)), Ret_=eg(sat(S0)) :-
+    Ret = mc_(Ini, Ctl, state_space(M, S, set.copy(T, T_))), 
+    Ret_=s_eg0(S0, set.to_list(T_), [], []).
+
+% s_eg------------------------------------------------------
+% Ret = s_eg0(Sphi, R, R_, Rscc)
+eg@@Ret = s_eg0(S0,['.'($x,$y)|T], Tt, Rt) :- int($x), int($y) |
+    Ret = s_eg1(set.find(S0, $x, Res), Res, ['.'($x, $y)|T], Tt, Rt).
+eg@@Ret = s_eg0(S0, [], Tt, Rt) :-
+    Ret = s_eg3(set.init, scc_init, set.copy(S0, Ls_), Tt, []), g(set.to_list(Ls_), Rt).
+
+eg@@Ret = s_eg1(S0, some, ['.'($x, $y)|T], Tt, Rt) :- int($x), int($y)|
+    Ret = s_eg2(set.find(S0, $y, Res), Res, ['.'($x, $y)|T], ['.'($x, $y)|Tt], Rt).
+eg@@Ret = s_eg1(S0, none, ['.'($x, $y)|T], Tt, Rt) :- int($x), int($y)|
+    Ret = s_eg0(S0, T, ['.'($x, $y)|Tt], Rt).
+
+eg@@Ret = s_eg2(S0, some, ['.'(X, Y)|T], Tt, Rt) :- 
+    Ret = s_eg0(S0, T, Tt, ['.'(X, Y)|Rt]).
+eg@@Ret = s_eg2(S0, none, ['.'($x, $y)|T], Tt, Rt) :- int($x), int($y) |
+    Ret = s_eg0(S0, T, Tt, Rt).
+
+% Ret = s_eg3(empty_set, Scc, Sphi, R, empty_list)
+eg@@Ret = s_eg3(St, [[$x|T]|T_], S, Tt, Ts) :- int($x)|
+    Ret = s_eg3(set.insert(St, $x), [T|T_], S, Tt, [$x|Ts]).
+eg@@Ret = s_eg3(St, [[], X|T_], S, Tt, Ts) :- 
+    Ret = s_eg3(St, [X|T_], S, Tt, Ts).
+
+eg@@Ret = s_eg3(St, [], S, Tt, Ts) :-
+    Ret = s_eg4(St, set.copy(S, Ls), set.to_list(Ls), Tt, Ts).
+
+eg@@Ret = s_eg3(St, [[]], S, Tt, Ts) :-
+    Ret = s_eg4(St, set.copy(S, Ls), set.to_list(Ls), Tt, Ts).
+
+% Ret = s_eg4(Seg_set, Sphi_set, Sphi_list, R_list, T_list)
+eg@@Ret = s_eg4(Seg_set, Sphi_set, Sphi_list, R_list, [X|T]) :-
+    Ret = s_eg5(Seg_set, Sphi_set, Sphi_list, dst_search(X, R_list, Ret_, [], []), Ret_, T).
+
+eg@@Ret = s_eg4(Seg_set, Sphi_set, $sphi_lst, $r_lst, []), Ret_=mc_(Ini, Ctl, Ss) :- ground($sphi_lst), ground($r_lst) |
+    Ret = sat(Seg_set), set.free(Sphi_set), Ret_=mc1(Ini, Ctl, Ss).
+
+eg@@Ret = s_eg5(Seg_set, Sphi_set, Sphi_list, [$x|T], R_list, T_list) :- int($x) |
+    Ret = s_eg6($x, set.find(Seg_set, $x, Res_), set.find(Sphi_set, $x, Res), Res_, Res, Sphi_list, T, R_list, T_list).
+
+eg@@Ret = s_eg5(Seg_set, Sphi_set, Sphi_list, [], R_list, T_list) :-
+    Ret = s_eg4(Seg_set, Sphi_set, Sphi_list, R_list, T_list).
+
+eg@@Ret = s_eg6($x, Seg_set, Sphi_set, none, some, Sphi_list, Src_list, R_list, T_list) :- int($x) |
+    Ret = s_eg5(set.insert(Seg_set, $x), Sphi_set, Sphi_list, Src_list, R_list, [$x|T_list]).
+
+eg@@Ret = s_eg6($x, Seg_set, Sphi_set, none, none, Sphi_list, Src_list, R_list, T_list) :- int($x) |
+    Ret = s_eg5(Seg_set, Sphi_set, Sphi_list, Src_list, R_list, T_list).
+
+eg@@Ret = s_eg6($x, Seg_set, Sphi_set, some, some, Sphi_list, Src_list, R_list, T_list) :- int($x) |
+    Ret = s_eg5(Seg_set, Sphi_set, Sphi_list, Src_list, R_list, T_list).    
+
+eg@@Ret = s_eg6($x, Seg_set, Sphi_set, some, none, Sphi_list, Src_list, R_list, T_list) :- int($x) |
+    Ret = s_eg5(Seg_set, Sphi_set, Sphi_list, Src_list, R_list, T_list).
+
+% s_p------------------------------------------------------
+p@@Ret = s_p(S0, [$x|L], R, state_space(M,S1,T)) :- int($x) |
+    Ret = s_p0(S0, L, $x,R, G, state_space(state_space.state_map_find(M,$x,G),S1,T)).
+
+p@@Ret =s_p(Sat,[],{$r[],@r},SS),Ret_=mc_(Ini,Ctl) :-
+    Ret=sat(Sat),Ret_=mc1(Ini,Ctl,SS).
+
+p@@Ret = s_p0(S0,L,X,R,G,SS) :-
+    Ret = s_p1(S0,L,X,state_space.react_nd_set(R,G,RetRule),RetRule,SS).
+
+% Ret = s_p0(S0,L,X,R,G,SS) :-
+%     Ret = s_p1(S0,L,X,rule.react(R,G,RetRule),RetRule,SS).
+
+p@@Ret = s_p1(S0,L,X,[{$g[]}|T],R,SS) :-
+    Ret = s_p(set.insert(S0,X),L,R,SS), delete_lst(T).
+
+% Ret = s_p1(S0,L,X,success({$g[]}),R,SS) :-
+%     Ret = s_p(set.insert(S0,X),L,R,SS).
+
+
+p@@Ret = s_p1(S,L,$x,[],R,SS) :- int($x) |
+    Ret = s_p(S,L,R,SS).
+
+% Ret = s_p1(S,L,$x,fail({$g[]}),R,SS) :- int($x) |
+%     Ret = s_p(S,L,R,SS).
+% s_not------------------------------------------------------
+Ret = s_not(S, R), Ret_=mc_(I,C,SS) :- 
+    Ret = sat(S), set.free(R), Ret_=mc1(I,C,SS).
+% s_ex------------------------------------------------------
+Ret = s_ex(S0, ['.'($x, $y)|L], S1, SS) :- int($x), int($y) |
+    Ret = s_ex0(S0, L, set.find(S1, $x, Res), $x, Res, SS).
+
+Ret = s_ex(S0, [], S1, SS), Ret_=mc_(Ini, Ctl) :-
+    Ret = sat(S0), Ret_=mc1(Ini, Ctl, SS), set.free(S1).
+
+Ret = s_ex0(S0, L, S1, $x, some, SS) :- int($x) |
+    Ret = s_ex(set.insert(S0, $x), L, S1, SS).
+
+Ret = s_ex0(S0, L, S1, $x, none, SS) :- int($x) |
+    Ret = s_ex(S0, L, S1, SS).
+% s_eu------------------------------------------------------
+% s_eu(Sphi, Sphi, Sx_list, R_list, SS)
+Ret = s_eu(S0, S1, [$x|L], T_list, SS) :- int($x) |
+    Ret = s_eu0(S0, S1, L, dst_search($x, T_list, Ret_, [], []), Ret_, SS).
+
+Ret = s_eu(S0, S1, [], $t, SS), Ret_=mc_(Ini, Ctl) :- ground($t) |
+    Ret = sat(S0), Ret_=mc1(Ini, Ctl, SS), set.free(S1).
+
+Ret = s_eu0(S0, S1, L, [$x|L0], T_list, SS) :- int($x) |
+    Ret = s_eu1($x, set.find(S0, $x, Res), set.find(S1, $x, Res_), Res, Res_, L, L0, T_list, SS).
+
+Ret = s_eu0(S0, S1, L, [], T_list, SS) :-
+    Ret = s_eu(S0, S1, L, T_list, SS).
+
+Ret = s_eu1($x, S0, S1, none, none, L, L0, T_list, SS) :- int($x) |
+    Ret = s_eu0(S0, S1, L, L0, T_list, SS).
+
+Ret = s_eu1($x, S0, S1, some, none, L, L0, T_list, SS) :- int($x) |
+    Ret = s_eu0(S0, S1, L, L0, T_list, SS).
+
+Ret = s_eu1($x, S0, S1, some, some, L, L0, T_list, SS) :- int($x) |
+    Ret = s_eu0(S0, S1, L, L0, T_list, SS).
+
+Ret = s_eu1($x, S0, S1, none, some, L, L0, T_list, SS) :- int($x) |
+    Ret = s_eu0(set.insert(S0, $x), S1, [$x|L], L0, T_list, SS).
+
+Ret = dst_search($x, ['.'($y, $z)|L], T, R0, R1) :- $x==$z, int($y) |
+    Ret = dst_search($x, L, T, ['.'($y, $z)|R0], [$y|R1]).
+
+dst_search@@Ret = dst_search($x, ['.'($y, $z)|L], T, R0, R1) :- $x=\=$z, int($y) |
+    Ret = dst_search($x, L, T, ['.'($y, $z)|R0], R1).
+
+Ret = dst_search($x, [], T, R0, R1) :- int($x) |
+    Ret=R1, T=R0.
+% scc-------------------------
+scc@@Ret = scc_init :- visited(set.init), post_order([]), Ret = scc0, v([]).
+
+scc@@Ret = scc0, v(R), g([$s|S], T), visited(H) :- int($s) |
+	 v([$s|R]), g(S, T), visited(set.find(H, $s, Res)), Ret = scc1($s, Res).
+
+scc@@Ret = scc0, g([], T), v(R) :- Ret = scc2([]), g(R, rev_edge(T, [])), visited_(set.init).
+	 
+scc@@Ret = scc1($s, some) :- int($s)| Ret = scc0.
+scc@@Ret = scc1($s, none) :- int($s)| Ret = dfs, stack([[$s]]).
+
+scc@@Ret = scc2(R), post_order([$s|T]), visited_(H) :- int($s) |
+    Ret = scc3(R, $s, Res), post_order(T), visited_(set.find(H, $s, Res)).
+
+scc@@Ret = scc2(R), post_order([]) :- Ret = scc4(R, []).
+
+scc@@Ret = scc3(R, $s, some) :- int($s) | Ret = scc2(R).
+scc@@Ret = scc3(R, $s, none) :- int($s) | Ret = dfs_(R, []), stack([$s]).
+
+scc@@Ret = scc4([[$x]|T], R) :- int($x) | Ret = scc4(T, R).
+scc@@Ret = scc4([[X, Y|T]|T_], R) :- Ret = scc4(T_, [[X, Y|T]|R]).
+scc@@Ret = scc4([], R), g($s, $t), visited(S), visited_(S_) :- ground($s), ground($t)|
+    Ret = R, set.free(S), set.free(S_).
+
+% dfs_------------------------
+Ret = dfs_(R, R_), g(S, T), stack([$s|T_]), visited_(H) :- int($s) |
+    Ret = foreach(R, [$s|R_], succ($s, T, [], Rt, [])), g(S, Rt), stack(T_), visited_(set.insert(H, $s)).
+
+Ret = dfs_(R, R_), stack([]) :-
+    Ret = scc2([R_|R]).
+
+Ret = foreach(R, R_, [$x|T]), visited_(H) :- int($x) |
+    Ret = foreach(R, R_, $x, T, Res), visited_(set.find(H, $x, Res)).
+
+Ret = foreach(R, R_, $x, T, some) :- int($x) | Ret = foreach(R, R_, T).
+Ret = foreach(R, R_, X, T, none), stack(S) :- Ret = foreach(R, R_, T), stack([X|S]).
+Ret = foreach(R, R_, []) :- Ret = dfs_(R, R_).
+% rev_edge--------------------
+
+Ret = rev_edge(['.'(S,D)|T], R) :- 
+    Ret = rev_edge(T, ['.'(D,S)|R]).
+Ret = rev_edge([], R) :- Ret = R.
+
+% dfs-------------------------
+
+Ret = dfs, g(S, T), stack([[$x|T_]|T__]),visited(H) :- int($x)|
+   g(S, Rt), Ret = foreach(succ($x, T, [], Rt, [])), stack([[$x|T_]|T__]), st_([]), visited(set.insert(H, $x)).
+
+Ret = dfs, stack([[], [X|T]|T_]), post_order(P) :-
+   Ret = dfs, stack([T|T_]), post_order([X|P]).
+
+Ret = dfs, stack([[]]) :- Ret = scc0.
+
+Ret = foreach([$s|T]), visited(H) :- int($s)|
+    Ret = foreach($s, T, Res), visited(set.find(H, $s, Res)).
+
+Ret = foreach([]), stack(R), st_(T) :- Ret = dfs, stack([T|R]).
+
+Ret = foreach(S, T, none),  st_(R), :- Ret = foreach(T), st_([S|R]).
+Ret = foreach($s, T, some) :- int($s) | Ret = foreach(T).
+
+% succ---------------------
+Ret = succ($x, ['.'($s, $d)|T], Rt, Rt_, R) :- $x=$s, int($d) |
+    Ret = succ($x, T, ['.'($s, $d)|Rt], Rt_, [$d|R]).
+Ret = succ($x, ['.'($s, $d)|T], Rt, Rt_, R) :- $x=\=$s, int($d)|
+    Ret = succ($x, T, ['.'($s, $d)|Rt], Rt_, R).
+Ret = succ($x, [], Rt, Rt_, R) :- int($x) |
+    Ret = R, Rt=Rt_.
+
+% -----------
+delete_lst([{$s[]}|T]) :- delete_lst(T).
+delete_lst([]) :- .
+
+Ret = ax(X) :- Ret = not(ex(not(X))).
+Ret = ef(X) :- Ret = eu(true, X).
+Ret = ag(X) :- Ret = not(ef(not(X))).
+Ret = af(X) :- Ret = not(eg(not(X))).
+Ret = au(X, Y) :- Ret = and(not(eu(not(Y0), and(not(X), not(Y1)))), not(eg(not(Y2)
+))), copy_exp(Y, Y0, Y1, Y2).
+
+Ret = imply(X, Y) :- Ret = or(not(X), Y).
+Ret = and(X, Y) :- Ret = not(or(not(X), not(Y))).
+
+copy_exp(ax(E), E0, E1, E2) :-
+    E0 = ax(E0_), E1 = ax(E1_), E2 = ax(E2_),
+    copy_exp(E, E0_, E1_, E2_).
+copy_exp(ex(E), E0, E1, E2) :-
+    E0 = ex(E0_), E1 = ex(E1_), E2 = ex(E2_),
+    copy_exp(E, E0_, E1_, E2_).
+copy_exp(ef(E), E0, E1, E2) :-
+    E0 = ef(E0_), E1 = ef(E1_), E2 = ef(E2_),
+    copy_exp(E, E0_, E1_, E2_).
+copy_exp(af(E), E0, E1, E2) :-
+    E0 = af(E0_), E1 = af(E1_), E2 = af(E2_),
+    copy_exp(E, E0_, E1_, E2_).
+copy_exp(ag(E), E0, E1, E2) :-
+    E0 = ag(E0_), E1 = ag(E1_), E2 = ag(E2_),
+    copy_exp(E, E0_, E1_, E2_).
+copy_exp(eg(E), E0, E1, E2) :-
+    E0 = eg(E0_), E1 = eg(E1_), E2 = eg(E2_),
+    copy_exp(E, E0_, E1_, E2_).
+copy_exp(eu(E, E_), E0, E1, E2) :-
+    E0 = eu(E0_, E0__), E1 = eu(E1_, E1__), E2 = eu(E2_, E2__),
+    copy_exp(E, E0_, E1_, E2_),
+    copy_exp(E_, E0__, E1__, E2__).
+copy_exp(eu(E, E_), E0, E1, E2) :-
+    E0 = eu(E0_, E0__), E1 = eu(E1_, E1__), E2 = eu(E2_, E2__),
+    copy_exp(E, E0_, E1_, E2_),
+    copy_exp(E_, E0__, E1__, E2__).
+copy_exp(true, E0, E1, E2) :-
+    E0 = true, E1 = true, E2 = true.
+copy_exp(false, E0, E1, E2) :-
+    E0 = false, E1 = false, E2 = false.
+copy_exp(not(E), E0, E1, E2) :-
+    E0 = not(E0_), E1 = not(E1_), E2 = not(E2_),
+    copy_exp(E, E0_, E1_, E2_).
+copy_exp(p($x), E0, E1, E2) :- hlink($x) |
+    E0 = p($x), E1 = p($x), E2 = p($x).
+copy_exp(and(E, E_), E0, E1, E2) :-
+    E0 = and(E0_, E0__), E1 = and(E1_, E1__), E2 = and(E2_, E2__),
+    copy_exp(E, E0_, E1_, E2_),
+    copy_exp(E_, E0__, E1__, E2__).
+copy_exp(or(E, E_), E0, E1, E2) :-
+    E0 = or(E0_, E0__), E1 = or(E1_, E1__), E2 = or(E2_, E2__),
+    copy_exp(E, E0_, E1_, E2_),
+    copy_exp(E_, E0__, E1__, E2__).
+copy_exp(imply(E, E_), E0, E1, E2) :-
+    E0 = imply(E0_, E0__), E1 = imply(E1_, E1__), E2 = imply(E2_, E2__),
+    copy_exp(E, E0_, E1_, E2_),
+    copy_exp(E_, E0__, E1__, E2__).
+
+% *************************************
+% *      State space construction     *
+% *************************************
+run@@Ret = run(Rs, {$ini[]}) :- 
+    Ret = exp0(Rs, s(ID, {$ini[]}), state_space.state_map_find(state_space.state_map_init, {$ini[]}, ID), set_empty, set_empty).
+
+exp0@@Ret = exp0(Rs, s($id, {$ini[]}), M, S, T) :- int($id) |
+    Ret = exp(Rs, [s($id, {$ini[]})], M, set.insert(S, $id), T), ini($id).
+
+exp0@@Ret = exp({$rs[], @rs}, [], M, S, T),ini($id) :- int($id) |
+    Ret = state_space($id, M, S, T).
+
+exp1@@Ret = exp({$rs[], @rs}, [s($id, {$src[]})|Stk], M, S, T) :- int($id) |
+    Ret = suc(Rs, Stk, state_space.react_nd_set({$rs[], @rs}, {$src[]}, Rs), s($id, {$src[]}), M, S, T).
+
+suc0@@Ret = suc(Rs, Stk, [], s($id, {$src[]}), M, S, T) :- int($id) |
+    Ret = exp(Rs, Stk, M, S, T).
+
+suc1@@Ret = suc(Rs, Stk, [{$dest[]}|Suc], Src, M, S, T) :-
+    Ret = ns0(Rs, Stk, Suc, Src, s(ID, {$dest[]}), state_space.state_map_find(M, {$dest[]}, ID), S, T).
+
+ns0@@Ret = ns0(Rs, Stk, Suc, Src, s($id_d, {$dest[]}), M, S, T) :- int($id_d) |
+    Ret = ns(Rs, Stk, Suc, Res, Src, s($id_d, {$dest[]}), M, set.find(S, $id_d, Res), T).
+
+ns0@@Ret = ns(Rs, Stk, Suc, none, s($id_s, {$src[]}), s($id_d, Des), M, S, T) :- int($id_s), int($id_d)|
+    Ret = suc(Rs, [s($id_d, Des)|Stk], Suc, s($id_s, {$src[]}), M, set.insert(S, $id_d), set.insert(T, '.'($id_s, $id_d))).
+
+ns1@@Ret = ns(Rs, Stk, Suc, some, s($id_s, Src), s($id_d, Des), M, S, T) :- int($id_s), int($id_d) |
+    Ret = nt(Rs, Stk, Suc, Res, s($id_s, Src), s($id_d, Des), M, S, set.find(T, '.'($id_s, $id_d), Res)).
+
+nt0@@Ret = nt(Rs, Stk, Suc, none, s($id_s, Src), s($id_d, {$dest[]}), M, S, T) :- int($id_s), int($id_d) |
+    Ret = suc(Rs, Stk, Suc, s($id_s, Src), M, S, set.insert(T, '.'($id_s, $id_d))).
+
+nt1@@Ret = nt(Rs, Stk, Suc, some, Src, s($id_d, {$dest[]}), M, S, T) :- int($id_d) |
+    Ret = suc(Rs, Stk, Suc, Src, M, S, T).
