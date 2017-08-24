@@ -1,0 +1,40 @@
+
+set.use.
+state_space.use.
+n(0), t(0).
+
+
+
+run@@Ret = run(Rs, {$ini[]}), n($n) :- $nn = $n+1 |
+    Ret = exp0(Rs, s(ID, {$ini[]}), 
+	       state_space.state_map_find(state_space.state_map_init, {$ini[]}, ID), set.init, set.init), n($nn).
+
+exp0@@Ret = exp0(Rs, X, M, S, T), X=s($id, {$ini[]}) :- int($id) |
+    Ret = exp(Rs, [s($id, {$ini[]})], M, set.insert(S, $id), T), ini($id).
+
+exp1@@Ret = exp({$rs[], @rs}, [], M, S, T), ini(I) :-
+    Ret = state_space(I, M, S, T).
+
+exp2@@Ret = exp(Rss, X,  M, S, T), X=[s($id, {$src[]})|Stk] :- int($id) |
+    Ret = suc(Rs, Stk, state_space.react_nd_set(Rss, {$src[]}, Rs), s0($id, {$src[]}), M, S, T).
+
+suc0@@Ret = suc(Rs, Stk, [], s0($id, {$src[]}), M, S, T) :- int($id) |
+    Ret = exp(Rs, Stk, M, S, T).
+
+suc1@@Ret = suc(Rs, Stk, [{$dest[]}|Suc], Src, M, S, T) :-
+    Ret = ns0(Rs, Stk, Suc, Src, s0(ID, {$dest[]}), state_space.state_map_find(M, {$dest[]}, ID), S, T).
+
+ns0@@Ret = ns0(Rs, Stk, Suc, Src, s0($id_d, Dest), M, S, T) :- int($id_d) |
+    Ret = ns(Rs, Stk, Suc, Res, Src, s0($id_d, Dest), M, set.find(S, $id_d, Res), T).
+
+ns1@@Ret = ns(Rs, Stk, Suc, some, s0($id_s, Src), s0($id_d, Des), M, S, T) :- int($id_s), int($id_d) |
+    Ret = nt(Rs, Stk, Suc, Res, s0($id_s, Src), s0($id_d, Des), M, S, set.find(T, '.'($id_s, $id_d), Res)).
+
+ns2@@Ret = ns(Rs, Stk, Suc, none, s0($id_s, Src), s0($id_d, Des), M, S, T), n($n), t($t):- int($id_s), int($id_d), $nn=$n+1, $tt=$t+1|
+    Ret = suc(Rs, [s($id_d, Des)|Stk], Suc, s0($id_s, Src), M, set.insert(S, $id_d), set.insert(T, '.'($id_s, $id_d))), n($nn), t($tt).
+
+nt0@@Ret = nt(Rs, Stk, Suc, some, Src, s0($id_d, {$dest[]}), M, S, T) :- int($id_d) |
+    Ret = suc(Rs, Stk, Suc, Src, M, S, T).
+
+nt1@@Ret = nt(Rs, Stk, Suc, none, s0($id_s, Src), s0($id_d, {$dest[]}), M, S, T), t($t) :- int($id_s), int($id_d), $tt=$t+1 |
+    Ret = suc(Rs, Stk, Suc, s0($id_s, Src), M, S, set.insert(T, '.'($id_s, $id_d))), t($tt).
