@@ -1,0 +1,29 @@
+//++++++mutex++++++++++AG
+:- uniq |
+    ret = mc(ctl(ag(not(p(!P)))),
+	     {
+
+	X=wait :- X=rqst.
+	X=rqst, mutex :- X=crit.
+	X=crit :- X=wait, mutex .
+
+	     },
+	     {
+//12
+//	p(wait,12).
+//11
+//	p(wait,11).
+//10
+	p(wait,10). 
+	p(wait,9). 
+	p(wait,8).
+	p(wait,7).
+	p(wait,6).
+	p(wait,5).
+	p(wait,4). 
+	p(wait,3). 
+	p(wait,2). 
+	p(wait,1).
+	mutex.
+	     }),
+  pred({crit(!X), crit(!Y)}, {}, !P).

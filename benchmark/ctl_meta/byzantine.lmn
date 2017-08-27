@@ -1,0 +1,60 @@
+% +++++byzantine++++AG(EF)
+:- uniq |
+    ret = mc(ctl(ag(ef(or(p(!A), p(!B))))),
+	     {
+shirei(true) :- shirei(true,a).
+shirei(true) :- shirei(true,b).
+
+shirei(true,Cmd),i(I),p{ no(N),$p }
+ :- I=:=N,II=I+1,unary(Cmd)
+ | shirei(true,Cmd),i(II),p{ no(N),send(Cmd),ret(Cmd),$p }.
+
+shirei(false),i(I),p{ no(N),$p }
+ :- I=:=N,II=I+1
+ | shirei(false),i(II),p{ no(N),send(a),ret(a),$p }.
+shirei(false),i(I),p{ no(N),$p }
+ :- I=:=N,II=I+1
+ | shirei(false),i(II),p{ no(N),send(b),ret(b),$p }.
+
+
+s(S1,S2) :- S1=:=S2,S2I=S2+1 | s(S1,S2I).
+s(S1,S2),person(P) :- S2=:=P,S1I=S1+1 | s(S1I,1),person(P).
+
+
+p{ no(N1),send(Cmd),valid(true),$p1 },p{ no(N2),$p2 },s(M1,M2)
+ :- N1=:=M1,N2=:=M2,M2I=M2+1,unary(Cmd)
+ | p{ no(N1),send(Cmd),valid(true),$p1 },p{ no(N2),ret(Cmd),$p2 },s(M1,M2I).
+
+p{ no(N1),send(Cmd),valid(false),$p1 },p{ no(N2),$p2 },s(M1,M2)
+ :- N1=:=M1,N2=:=M2,M2I=M2+1,unary(Cmd)
+ | p{ no(N1),send(Cmd),valid(false),$p1 },p{ no(N2),ret(a),$p2 },s(M1,M2I).
+p{ no(N1),send(Cmd),valid(false),$p1 },p{ no(N2),$p2 },s(M1,M2)
+ :- N1=:=M1,N2=:=M2,M2I=M2+1,unary(Cmd)
+ | p{ no(N1),send(Cmd),valid(false),$p1 },p{ no(N2),ret(b),$p2 },s(M1,M2I).
+
+p{ ret(a),a(A),$p } :- AI=A+1 | p{ a(AI),$p }.
+p{ ret(b),b(B),$p } :- BI=B+1 | p{ b(BI),$p }.
+
+
+p{ no(N),valid(true),a(A),b(B),send(Cmd) },sumA(SA),person(P),s(S,1)
+ :- S=:=P,A>=B,SAI=SA+1,int(N),unary(Cmd)
+ | sumA(SAI),person(P),s(S,1).
+p{ no(N),valid(true),a(A),b(B),send(Cmd) },sumB(SB),person(P),s(S,1)
+ :- S=:=P,A<B, SBI=SB+1,int(N),unary(Cmd)
+ | sumB(SBI),person(P),s(S,1).
+	     },
+	     {
+	s(1, 1).sumA(0),sumB(0).i(1).
+
+//5
+//true(shirei). person(5). p{false(valid). b(0). a(0). no(4). }, p{false(valid). b(0). a(0). no(3). }, p{false(valid). b(0). a(0). no(2). }, p{false(valid). b(0). a(0). no(1). }
+
+//4
+//true(shirei). person(4). p{false(valid). b(0). a(0). no(3). }, p{false(valid). b(0). a(0). no(2). }, p{false(valid). b(0). a(0). no(1). }
+
+//3
+true(shirei). person(3). p{false(valid). b(0). a(0). no(2). }, p{false(valid). b(0). a(0). no(1). }.
+
+	     }),
+  pred({sumA(0), sumB('$x')}, {'>'('$x', 0)}, !A),
+  pred({sumB(0), sumA('$x')}, {'>'('$x', 0)}, !B).
