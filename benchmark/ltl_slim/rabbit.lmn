@@ -1,0 +1,26 @@
+/*
+ *  rabbit.lmn -- The Hopping Rabbits Game!
+ *
+ *  @author  Masato Gocho
+ *  @date    2009.05.12
+ *           2009.05.28  modified
+ *           2009.08.21  modified
+ *
+ *  from All About Maude
+ */
+
+
+% property0: 解はない
+
+//10
+//	init([x,x,x,x,x,x,x,x,x,x,free,o,o,o,o,o,o,o,o,o,o]).
+//9
+//	init([x,x,x,x,x,x,x,x,x,free,o,o,o,o,o,o,o,o,o]).
+//8
+	init([x,x,x,x,x,x,x,x,free,o,o,o,o,o,o,o,o]).
+
+
+xAdvances @@ E=[x,free |F] :- E=[free,x |F].
+xJumps    @@ E=[x,o,free |F] :- E=[free,o,x |F].
+xAdvances @@ E=[free,o |F] :- E=[o,free |F].
+xJumps    @@ E=[free,x,o |F] :- E=[o,x,free |F].
