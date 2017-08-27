@@ -1,5 +1,6 @@
+% +++++rabbit++++AF
 :- uniq |
-    ret = mc(ba([0, 1], [d(0, true, 0), d(0, and(and(not(!Q), not(!R)), !P), 1), d(1, true, 1)], [0], [1]),
+    ret = mc(ctl(not(af(and(p(!P), and(not(p(!Q)), not(p(!R))))))),
 	     {
 	E=[x,free |F] :- E=[free,x |F].
 	E=[x,o,free |F] :- E=[free,o,x |F].
@@ -7,12 +8,12 @@
 	E=[free,x,o |F] :- E=[o,x,free |F].
 	     },
 	     {
-//10
-//	init([x,x,x,x,x,x,x,x,x,x,free,o,o,o,o,o,o,o,o,o,o]).
-//9
-//	init([x,x,x,x,x,x,x,x,x,free,o,o,o,o,o,o,o,o,o]).
-//8
-	init([x,x,x,x,x,x,x,x,free,o,o,o,o,o,o,o,o]).
+//6
+//	init([x,x,x,x,x,x,free,o,o,o,o,o,o])
+//5
+//	init([x,x,x,x,x,free,o,o,o,o,o])
+//4
+	init([x,x,x,x,free,o,o,o,o])
 	     }),
 pred({!E0=[o,free,x |!F0]}, {}, !P),
 pred({!E1=[o,x |!F1]}, {}, !Q),

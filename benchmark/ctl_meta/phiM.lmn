@@ -1,0 +1,33 @@
+//+++++phiM+++++
+
+:- uniq |
+    ret = mc(ctl(ag(imply(p(!P), af(p(!Q))))),
+	     {
+	hungry__ @@ {phi=I, state=thinking, $p} :- int(I) |
+            {phi=I, state=hungry,   $p}.
+	grab1stL @@ {phi=I, state=hungry,   noOfSticks=0}, chopstick(J) :- J=:=I |
+            {phi=I, state=hungry,   noOfSticks=1}.
+	grab1stR @@ {phi=I, state=hungry,   noOfSticks=0}, n(N), chopstick(J) :- J=:=I mod N + 1 |
+            {phi=I, state=hungry,   noOfSticks=1}, n(N).
+	grab2ndL @@ {phi=I, state=hungry,   noOfSticks=1}, chopstick(J) :- J=:=I |
+            {phi=I, state=eating,   noOfSticks=2}.
+	grab2ndR @@ {phi=I, state=hungry,   noOfSticks=1}, n(N), chopstick(J) :- J=:=I mod N + 1 |
+            {phi=I, state=eating,   noOfSticks=2}, n(N).
+	stopEat_ @@ {phi=I, state=eating,   noOfSticks=J}, n(N) :- int(J), C=(I mod N)+1 |
+            {phi=I, state=thinking, noOfSticks=0}, n(N), chopstick(I), chopstick(C).
+	     },
+
+ 	     {
+//6
+//n(6). chopstick(6). chopstick(5). chopstick(4). chopstick(3). chopstick(2). chopstick(1). {phi(6). state(thinking). noOfSticks(0). }, {phi(5). state(thinking). noOfSticks(0). }, {phi(4). state(thinking). noOfSticks(0). }, {phi(3). state(thinking). noOfSticks(0). }, {phi(2). state(thinking). noOfSticks(0). }, {phi(1). state(thinking). noOfSticks(0). }.
+
+//5
+//n(5). chopstick(5). chopstick(4). chopstick(3). chopstick(2). chopstick(1). {phi(5). state(thinking). noOfSticks(0). }, {phi(4). state(thinking). noOfSticks(0). }, {phi(3). state(thinking). noOfSticks(0). }, {phi(2). state(thinking). noOfSticks(0). }, {phi(1). state(thinking). noOfSticks(0). }.
+
+//4
+n(4). chopstick(4). chopstick(3). chopstick(2). chopstick(1). {phi(4). state(thinking). noOfSticks(0). }, {phi(3). state(thinking). noOfSticks(0). }, {phi(2). state(thinking). noOfSticks(0). }, {phi(1). state(thinking). noOfSticks(0). }.
+
+  	     }
+  	     ),
+  pred({{phi(1), state(eating), '$s'}}, {}, !P),
+  pred({{phi(1), state(hungry), '$s'}}, {}, !Q).

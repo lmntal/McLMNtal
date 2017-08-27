@@ -94,7 +94,7 @@
 %   pred({sumB(0), sumA('$x')}, {'>'('$x', 0)}, !B).
 % ++++rabbit+++++
 % :- uniq |
-%     ret = mc(ba([0, 1], [d(0, true, 0), d(0, and(and(!Q, !R), !P), 1), d(1, true, 1)], [0], [1]),
+%     ret = mc(ba([0, 1], [d(0, true, 0), d(0, and(and(not(!Q), not(!R)), !P), 1), d(1, true, 1)], [0], [1]),
 % 	     {
 % 	E=[x,free |F] :- E=[free,x |F].
 % 	E=[x,o,free |F] :- E=[free,o,x |F].
@@ -103,7 +103,7 @@
 % 	     },
 % 	     {
 % //10
-% //	init([x,x,x,x,x,x,x,x,x,free,o,o,o,o,o,o,o,o,o]).
+% //	init([x,x,x,x,x,x,x,x,x,x,free,o,o,o,o,o,o,o,o,o,o]).
 % //9
 % //	init([x,x,x,x,x,x,x,x,x,free,o,o,o,o,o,o,o,o,o]).
 % //8
@@ -276,16 +276,16 @@ copy_prop($x, P1, P2) :- hlink($x) |
     P1 = $x, P2 = $x.
 copy_prop(and(X, Y), P1, P2) :-
     P1 = and(L1, L2), P2 = and(L1_, L2_),
-    copy_prop(X, L1, L2),
-    copy_prop(Y, L1_, L2_).
+    copy_prop(X, L1, L1_),
+    copy_prop(Y, L2, L2_).
 copy_prop(or(X, Y), P1, P2) :-
     P1 = not(and(not(L1), not(L2))), P2 = not(and(not(L1_), not(L2_))),
-    copy_prop(X, L1, L2),
-    copy_prop(Y, L1_, L2_).
+    copy_prop(X, L1, L1_),
+    copy_prop(Y, L2, L2_).
 copy_prop(imply(X, Y), P1, P2) :-
     P1 = not(and(L1, not(L2))), P2 = not(and(L1_, not(L2_))),
-    copy_prop(X, L1, L2),
-    copy_prop(Y, L1_, L2_).
+    copy_prop(X, L1, L1_),
+    copy_prop(Y, L2, L2_).
 
 
 delete_prop(true) :- .
