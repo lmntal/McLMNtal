@@ -10,10 +10,10 @@ Ret = mc(Ctl, Ruleset, Graph) :-
 start_mc@@Ret = mc0(Ctl, state_space(Ini,M,S,T)) :-
     Ret = mc1(Ini, Ctl, state_space(M,S,T)).
 
-Ret = result(Set, some, SS) :-
-    Ret = result(true), set.free(Set), free(SS).
-Ret = result(Set, none, SS) :-
-    Ret = result(false), set.free(Set), free(SS).
+Ret = result(Set, some, SS), h(H) :-
+    Ret = result(true), set.free(Set), free(SS), hashmap.free(H).
+Ret = result(Set, none, SS), h(H) :-
+    Ret = result(false), set.free(Set), free(SS), hashmap.free(H).
 % labeling algorithm---------------------------------------
 finish@@Ret = mc1(Ini, ctl(sat(S)), SS) :- 
     Ret = result(set.find(S, Ini, Res), Res, SS).
@@ -35,7 +35,7 @@ ex@@Ret = mc1(Ini, Ctl, state_space(M, S, T)), Ret_ = ex(sat(S_)) :-
     Ret = mc_(Ini, Ctl), Ret_ = s_ex(set.init, set.to_list(T_), S_, state_space(M, S, set.copy(T, T_))).
 
 eu@@Ret = mc1(Ini, Ctl, state_space(M, S, T)), Ret_=eu(sat(S0), sat(S1)) :-
-    Ret = mc_(Ini, Ctl), Ret_=s_eu(set.copy(S1, S1_), S0, set.to_list(S1_), set.to_list(T_), state_space(M, S, set.copy(T, T_))).
+    Ret = mc_(Ini, Ctl), Ret_=s_eu(set.copy(S1, S1_), S0, set.to_list(S1_), state_space(M, S, T)).
 
 eg@@Ret=mc1(Ini, Ctl, state_space(M, S, T)), Ret_=eg(sat(S0)) :-
     Ret = mc_(Ini, Ctl, state_space(M, S, set.copy(T, T_))), 
@@ -71,8 +71,14 @@ eg@@Ret = s_eg3(St, [[]], S, Tt, Ts) :-
     Ret = s_eg4(St, set.copy(S, Ls), set.to_list(Ls), Tt, Ts).
 
 % Ret = s_eg4(Seg_set, Sphi_set, Sphi_list, R_list, T_list)
-eg@@Ret = s_eg4(Seg_set, Sphi_set, Sphi_list, R_list, [X|T]) :-
-    Ret = s_eg5(Seg_set, Sphi_set, Sphi_list, dst_search(X, R_list, Ret_, [], []), Ret_, T).
+eg@@Ret = s_eg4(Seg_set, Sphi_set, Sphi_list, R_list, [X|T]), h(H) :-
+    Ret = s_eg5_(Seg_set, Sphi_set, Sphi_list, Res, R_list, T), h(hashmap.find(H, X, Res)).
+
+Ret = s_eg5_(Seg_set, Sphi_set, Sphi_list, some({dst($d)}), R_list, T) :- ground($d) |
+    Ret = s_eg5(Seg_set, Sphi_set, Sphi_list, $d, R_list, T).
+
+% eg@@Ret = s_eg4(Seg_set, Sphi_set, Sphi_list, R_list, [X|T]) :-
+%     Ret = s_eg5(Seg_set, Sphi_set, Sphi_list, dst_search(X, R_list, Ret_, [], []), Ret_, T).
 
 eg@@Ret = s_eg4(Seg_set, Sphi_set, $sphi_lst, $r_lst, []), Ret_=mc_(Ini, Ctl, Ss) :- ground($sphi_lst), ground($r_lst) |
     Ret = sat(Seg_set), set.free(Sphi_set), Ret_=mc1(Ini, Ctl, Ss).
@@ -137,38 +143,34 @@ Ret = s_ex0(S0, L, S1, $x, none, SS) :- int($x) |
     Ret = s_ex(S0, L, S1, SS).
 % s_eu------------------------------------------------------
 % s_eu(Sphi, Sphi, Sx_list, R_list, SS)
-Ret = s_eu(S0, S1, [$x|L], T_list, SS) :- int($x) |
-    Ret = s_eu0(S0, S1, L, dst_search($x, T_list, Ret_, [], []), Ret_, SS).
 
-Ret = s_eu(S0, S1, [], $t, SS), Ret_=mc_(Ini, Ctl) :- ground($t) |
+s_eu_start@@Ret = s_eu(S0, S1, [$x|L], SS), h(H) :- int($x) |
+    Ret = s_eu0_(S0, S1, L, Res, SS), h(hashmap.find(H, $x, Res)).
+
+s_eu0@@Ret = s_eu0_(S0, S1, L, some({dst($d)}), SS) :- ground($d) |
+    Ret = s_eu0(S0, S1, L, $d, SS).
+
+s_eu_empty@@Ret = s_eu(S0, S1, [], SS), Ret_=mc_(Ini, Ctl) :- 
     Ret = sat(S0), Ret_=mc1(Ini, Ctl, SS), set.free(S1).
 
-Ret = s_eu0(S0, S1, L, [$x|L0], T_list, SS) :- int($x) |
-    Ret = s_eu1($x, set.find(S0, $x, Res), set.find(S1, $x, Res_), Res, Res_, L, L0, T_list, SS).
+s_eu0@@Ret = s_eu0(S0, S1, L, [$x|L0], SS) :- int($x) |
+    Ret = s_eu1($x, set.find(S0, $x, Res), set.find(S1, $x, Res_), Res, Res_, L, L0, SS).
 
-Ret = s_eu0(S0, S1, L, [], T_list, SS) :-
-    Ret = s_eu(S0, S1, L, T_list, SS).
+s_eu0@@Ret = s_eu0(S0, S1, L, [], SS) :-
+    Ret = s_eu(S0, S1, L, SS).
 
-Ret = s_eu1($x, S0, S1, none, none, L, L0, T_list, SS) :- int($x) |
-    Ret = s_eu0(S0, S1, L, L0, T_list, SS).
+s_eu1@@Ret = s_eu1($x, S0, S1, none, none, L, L0, SS) :- int($x) |
+    Ret = s_eu0(S0, S1, L, L0, SS).
 
-Ret = s_eu1($x, S0, S1, some, none, L, L0, T_list, SS) :- int($x) |
-    Ret = s_eu0(S0, S1, L, L0, T_list, SS).
+s_eu1@@Ret = s_eu1($x, S0, S1, some, none, L, L0, SS) :- int($x) |
+    Ret = s_eu0(S0, S1, L, L0, SS).
 
-Ret = s_eu1($x, S0, S1, some, some, L, L0, T_list, SS) :- int($x) |
-    Ret = s_eu0(S0, S1, L, L0, T_list, SS).
+s_eu1@@Ret = s_eu1($x, S0, S1, some, some, L, L0, SS) :- int($x) |
+    Ret = s_eu0(S0, S1, L, L0, SS).
 
-Ret = s_eu1($x, S0, S1, none, some, L, L0, T_list, SS) :- int($x) |
-    Ret = s_eu0(set.insert(S0, $x), S1, [$x|L], L0, T_list, SS).
+s_eu1@@Ret = s_eu1($x, S0, S1, none, some, L, L0, SS) :- int($x) |
+    Ret = s_eu0(set.insert(S0, $x), S1, [$x|L], L0, SS).
 
-Ret = dst_search($x, ['.'($y, $z)|L], T, R0, R1) :- $x==$z, int($y) |
-    Ret = dst_search($x, L, T, ['.'($y, $z)|R0], [$y|R1]).
-
-dst_search@@Ret = dst_search($x, ['.'($y, $z)|L], T, R0, R1) :- $x=\=$z, int($y) |
-    Ret = dst_search($x, L, T, ['.'($y, $z)|R0], R1).
-
-Ret = dst_search($x, [], T, R0, R1) :- int($x) |
-    Ret=R1, T=R0.
 % scc-------------------------
 scc@@Ret = scc_init :- visited(set.init), post_order([]), Ret = scc0, v([]).
 
@@ -194,18 +196,18 @@ scc@@Ret = scc4([], R), g($s, $t), visited(S), visited_(S_) :- ground($s), groun
     Ret = R, set.free(S), set.free(S_).
 
 % dfs_------------------------
-Ret = dfs_(R, R_), g(S, T), stack([$s|T_]), visited_(H) :- int($s) |
+dfs@@Ret = dfs_(R, R_), g(S, T), stack([$s|T_]), visited_(H) :- int($s) |
     Ret = foreach(R, [$s|R_], succ($s, T, [], Rt, [])), g(S, Rt), stack(T_), visited_(set.insert(H, $s)).
 
-Ret = dfs_(R, R_), stack([]) :-
+dfs@@Ret = dfs_(R, R_), stack([]) :-
     Ret = scc2([R_|R]).
 
-Ret = foreach(R, R_, [$x|T]), visited_(H) :- int($x) |
+foreach@@Ret = foreach(R, R_, [$x|T]), visited_(H) :- int($x) |
     Ret = foreach(R, R_, $x, T, Res), visited_(set.find(H, $x, Res)).
 
-Ret = foreach(R, R_, $x, T, some) :- int($x) | Ret = foreach(R, R_, T).
-Ret = foreach(R, R_, X, T, none), stack(S) :- Ret = foreach(R, R_, T), stack([X|S]).
-Ret = foreach(R, R_, []) :- Ret = dfs_(R, R_).
+foreach@@Ret = foreach(R, R_, $x, T, some) :- int($x) | Ret = foreach(R, R_, T).
+foreach@@Ret = foreach(R, R_, X, T, none), stack(S) :- Ret = foreach(R, R_, T), stack([X|S]).
+foreach@@Ret = foreach(R, R_, []) :- Ret = dfs_(R, R_).
 % rev_edge--------------------
 
 Ret = rev_edge(['.'(S,D)|T], R) :- 
@@ -214,28 +216,28 @@ Ret = rev_edge([], R) :- Ret = R.
 
 % dfs-------------------------
 
-Ret = dfs, g(S, T), stack([[$x|T_]|T__]),visited(H) :- int($x)|
+dfs@@Ret = dfs, g(S, T), stack([[$x|T_]|T__]),visited(H) :- int($x)|
    g(S, Rt), Ret = foreach(succ($x, T, [], Rt, [])), stack([[$x|T_]|T__]), st_([]), visited(set.insert(H, $x)).
 
-Ret = dfs, stack([[], [X|T]|T_]), post_order(P) :-
+dfs@@Ret = dfs, stack([[], [X|T]|T_]), post_order(P) :-
    Ret = dfs, stack([T|T_]), post_order([X|P]).
 
-Ret = dfs, stack([[]]) :- Ret = scc0.
+dfs@@Ret = dfs, stack([[]]) :- Ret = scc0.
 
-Ret = foreach([$s|T]), visited(H) :- int($s)|
+dfs@@Ret = foreach([$s|T]), visited(H) :- int($s)|
     Ret = foreach($s, T, Res), visited(set.find(H, $s, Res)).
 
-Ret = foreach([]), stack(R), st_(T) :- Ret = dfs, stack([T|R]).
+dfs@@Ret = foreach([]), stack(R), st_(T) :- Ret = dfs, stack([T|R]).
 
-Ret = foreach(S, T, none),  st_(R), :- Ret = foreach(T), st_([S|R]).
-Ret = foreach($s, T, some) :- int($s) | Ret = foreach(T).
+dfs@@Ret = foreach(S, T, none),  st_(R), :- Ret = foreach(T), st_([S|R]).
+dfs@@Ret = foreach($s, T, some) :- int($s) | Ret = foreach(T).
 
 % succ---------------------
-Ret = succ($x, ['.'($s, $d)|T], Rt, Rt_, R) :- $x=$s, int($d) |
+suc@@Ret = succ($x, ['.'($s, $d)|T], Rt, Rt_, R) :- $x=$s, int($d) |
     Ret = succ($x, T, ['.'($s, $d)|Rt], Rt_, [$d|R]).
-Ret = succ($x, ['.'($s, $d)|T], Rt, Rt_, R) :- $x=\=$s, int($d)|
+suc@@Ret = succ($x, ['.'($s, $d)|T], Rt, Rt_, R) :- $x=\=$s, int($d)|
     Ret = succ($x, T, ['.'($s, $d)|Rt], Rt_, R).
-Ret = succ($x, [], Rt, Rt_, R) :- int($x) |
+suc@@Ret = succ($x, [], Rt, Rt_, R) :- int($x) |
     Ret = R, Rt=Rt_.
 
 % -----------
@@ -252,50 +254,50 @@ Ret = au(X, Y) :- Ret = and(not(eu(not(Y0), and(not(X), not(Y1)))), not(eg(not(Y
 Ret = imply(X, Y) :- Ret = or(not(X), Y).
 Ret = and(X, Y) :- Ret = not(or(not(X), not(Y))).
 
-copy_exp(ax(E), E0, E1, E2) :-
+copy@@copy_exp(ax(E), E0, E1, E2) :-
     E0 = ax(E0_), E1 = ax(E1_), E2 = ax(E2_),
     copy_exp(E, E0_, E1_, E2_).
-copy_exp(ex(E), E0, E1, E2) :-
+copy@@copy_exp(ex(E), E0, E1, E2) :-
     E0 = ex(E0_), E1 = ex(E1_), E2 = ex(E2_),
     copy_exp(E, E0_, E1_, E2_).
-copy_exp(ef(E), E0, E1, E2) :-
+copy@@copy_exp(ef(E), E0, E1, E2) :-
     E0 = ef(E0_), E1 = ef(E1_), E2 = ef(E2_),
     copy_exp(E, E0_, E1_, E2_).
-copy_exp(af(E), E0, E1, E2) :-
+copy@@copy_exp(af(E), E0, E1, E2) :-
     E0 = af(E0_), E1 = af(E1_), E2 = af(E2_),
     copy_exp(E, E0_, E1_, E2_).
-copy_exp(ag(E), E0, E1, E2) :-
+copy@@copy_exp(ag(E), E0, E1, E2) :-
     E0 = ag(E0_), E1 = ag(E1_), E2 = ag(E2_),
     copy_exp(E, E0_, E1_, E2_).
-copy_exp(eg(E), E0, E1, E2) :-
+copy@@copy_exp(eg(E), E0, E1, E2) :-
     E0 = eg(E0_), E1 = eg(E1_), E2 = eg(E2_),
     copy_exp(E, E0_, E1_, E2_).
-copy_exp(eu(E, E_), E0, E1, E2) :-
+copy@@copy_exp(eu(E, E_), E0, E1, E2) :-
     E0 = eu(E0_, E0__), E1 = eu(E1_, E1__), E2 = eu(E2_, E2__),
     copy_exp(E, E0_, E1_, E2_),
     copy_exp(E_, E0__, E1__, E2__).
-copy_exp(eu(E, E_), E0, E1, E2) :-
+copy@@copy_exp(eu(E, E_), E0, E1, E2) :-
     E0 = eu(E0_, E0__), E1 = eu(E1_, E1__), E2 = eu(E2_, E2__),
     copy_exp(E, E0_, E1_, E2_),
     copy_exp(E_, E0__, E1__, E2__).
-copy_exp(true, E0, E1, E2) :-
+copy@@copy_exp(true, E0, E1, E2) :-
     E0 = true, E1 = true, E2 = true.
-copy_exp(false, E0, E1, E2) :-
+copy@@copy_exp(false, E0, E1, E2) :-
     E0 = false, E1 = false, E2 = false.
-copy_exp(not(E), E0, E1, E2) :-
+copy@@copy_exp(not(E), E0, E1, E2) :-
     E0 = not(E0_), E1 = not(E1_), E2 = not(E2_),
     copy_exp(E, E0_, E1_, E2_).
-copy_exp(p($x), E0, E1, E2) :- hlink($x) |
+copy@@copy_exp(p($x), E0, E1, E2) :- hlink($x) |
     E0 = p($x), E1 = p($x), E2 = p($x).
-copy_exp(and(E, E_), E0, E1, E2) :-
+copy@@copy_exp(and(E, E_), E0, E1, E2) :-
     E0 = and(E0_, E0__), E1 = and(E1_, E1__), E2 = and(E2_, E2__),
     copy_exp(E, E0_, E1_, E2_),
     copy_exp(E_, E0__, E1__, E2__).
-copy_exp(or(E, E_), E0, E1, E2) :-
+copy@@copy_exp(or(E, E_), E0, E1, E2) :-
     E0 = or(E0_, E0__), E1 = or(E1_, E1__), E2 = or(E2_, E2__),
     copy_exp(E, E0_, E1_, E2_),
     copy_exp(E_, E0__, E1__, E2__).
-copy_exp(imply(E, E_), E0, E1, E2) :-
+copy@@copy_exp(imply(E, E_), E0, E1, E2) :-
     E0 = imply(E0_, E0__), E1 = imply(E1_, E1__), E2 = imply(E2_, E2__),
     copy_exp(E, E0_, E1_, E2_),
     copy_exp(E_, E0__, E1__, E2__).
@@ -303,35 +305,51 @@ copy_exp(imply(E, E_), E0, E1, E2) :-
 % *************************************
 % *      State space construction     *
 % *************************************
-run@@Ret = run(Rs, {$ini[]}) :- 
-    Ret = exp0(Rs, s(ID, {$ini[]}), state_space.state_map_find(state_space.state_map_init, {$ini[]}, ID), set_empty, set_empty).
+ set.use.
+ state_space.use.
+ n(0), t(0).
+ run@@Ret = run(Rs, {$ini[]}), n($n) :- $nn = $n+1 |
+     Ret = exp0(Rs, s(ID, {$ini[]}), 
+ 		state_space.state_map_find(state_space.state_map_init, {$ini[]}, ID), set.init, set.init), n($nn), h(hashmap.init).
+ 
+ exp0@@Ret = exp0(Rs, X, M, S, T), X=s($id, {$ini[]}) :- int($id) |
+     Ret = exp(Rs, q([L|s($id, {$ini[]})],L), M, set.insert(S, $id), T), ini($id).
+ 
+ exp1@@Ret = exp({@rs}, q(L,L), M, S, T), ini(I) :-
+     Ret = state_space(I, M, S, T).
+ 
+exp2@@Ret = exp(Rss, X,  M, S, T), X=q(Top,L), '.'(L,s($id, {$src[]}),Z), h(H) :- int($id) |
+    Ret = suc(Rs, q(Top,Z), state_space.react_nd_set(Rss, {$src[]}, Rs), s0($id, {$src[]}), M, S, T), h($id, [], H).
+ 
+suc0@@Ret = suc(Rs, Stk, [], s0($id, {$src[]}), M, S, T), h($s, $g, H) :- int($id), int($s), ground($g) |
+    Ret = exp(Rs, Stk, M, S, T), h(hashmap.insert(H, $s, {dst($g)})).
+ 
+ suc1@@Ret = suc(Rs, Stk, [{$dest[]}|Suc], Src, M, S, T) :-
+     Ret = ns0(Rs, Stk, Suc, Src, s0(ID, {$dest[]}), state_space.state_map_find(M, {$dest[]}, ID), S, T).
+ 
+ ns0@@Ret = ns0(Rs, Stk, Suc, Src, s0($id_d, Dest), M, S, T) :- int($id_d) |
+     Ret = ns(Rs, Stk, Suc, Res, Src, s0($id_d, Dest), M, set.find(S, $id_d, Res), T).
+ 
+ ns1@@Ret = ns(Rs, Stk, Suc, some, s0($id_s, Src), s0($id_d, Des), M, S, T) :- int($id_s), int($id_d) |
+     Ret = nt(Rs, Stk, Suc, Res, s0($id_s, Src), s0($id_d, Des), M, S, set.find(T, '.'($id_s, $id_d), Res)).
+ 
+ns2@@Ret = ns(Rs, X, Suc, none, s0($id_s, Src), s0($id_d, Des), M, S, T), n($n), t($t), X=q(L,Lst), h(I, LL, H)
+   :- int($id_s), int($id_d), $nn=$n+1, $tt=$t+1|
+    Ret = suc(Rs, q('.'(L,s($id_d, Des)),Lst), Suc, s0($id_s, Src), M, set.insert(S, $id_d), set.insert(T, '.'($id_s, $id_d))), n($nn), t($tt), h(I, [$id_d|LL], H).
+ 
+ nt0@@Ret = nt(Rs, Stk, Suc, some, Src, s0($id_d, {$dest[]}), M, S, T) :- int($id_d) |
+     Ret = suc(Rs, Stk, Suc, Src, M, S, T).
+ 
+nt1@@Ret = nt(Rs, Stk, Suc, none, s0($id_s, Src), s0($id_d, {$dest[]}), M, S, T), t($t), h(I, L, H) :- int($id_s), int($id_d), $tt=$t+1 |
+    Ret = suc(Rs, Stk, Suc, s0($id_s, Src), M, S, set.insert(T, '.'($id_s, $id_d))), t($tt), h(I, [$id_d|L], H).
 
-exp0@@Ret = exp0(Rs, s($id, {$ini[]}), M, S, T) :- int($id) |
-    Ret = exp(Rs, [s($id, {$ini[]})], M, set.insert(S, $id), T), ini($id).
 
-exp0@@Ret = exp({$rs[], @rs}, [], M, S, T),ini($id) :- int($id) |
-    Ret = state_space($id, M, S, T).
 
-exp1@@Ret = exp({$rs[], @rs}, [s($id, {$src[]})|Stk], M, S, T) :- int($id) |
-    Ret = suc(Rs, Stk, state_space.react_nd_set({$rs[], @rs}, {$src[]}, Rs), s($id, {$src[]}), M, S, T).
+% Ret = dst_search($x, ['.'($y, $z)|L], T, R0, R1) :- $x==$z, int($y) |
+%     Ret = dst_search($x, L, T, ['.'($y, $z)|R0], [$y|R1]).
 
-suc0@@Ret = suc(Rs, Stk, [], s($id, {$src[]}), M, S, T) :- int($id) |
-    Ret = exp(Rs, Stk, M, S, T).
+% dst_search@@Ret = dst_search($x, ['.'($y, $z)|L], T, R0, R1) :- $x=\=$z, int($y) |
+%     Ret = dst_search($x, L, T, ['.'($y, $z)|R0], R1).
 
-suc1@@Ret = suc(Rs, Stk, [{$dest[]}|Suc], Src, M, S, T) :-
-    Ret = ns0(Rs, Stk, Suc, Src, s(ID, {$dest[]}), state_space.state_map_find(M, {$dest[]}, ID), S, T).
-
-ns0@@Ret = ns0(Rs, Stk, Suc, Src, s($id_d, {$dest[]}), M, S, T) :- int($id_d) |
-    Ret = ns(Rs, Stk, Suc, Res, Src, s($id_d, {$dest[]}), M, set.find(S, $id_d, Res), T).
-
-ns0@@Ret = ns(Rs, Stk, Suc, none, s($id_s, {$src[]}), s($id_d, Des), M, S, T) :- int($id_s), int($id_d)|
-    Ret = suc(Rs, [s($id_d, Des)|Stk], Suc, s($id_s, {$src[]}), M, set.insert(S, $id_d), set.insert(T, '.'($id_s, $id_d))).
-
-ns1@@Ret = ns(Rs, Stk, Suc, some, s($id_s, Src), s($id_d, Des), M, S, T) :- int($id_s), int($id_d) |
-    Ret = nt(Rs, Stk, Suc, Res, s($id_s, Src), s($id_d, Des), M, S, set.find(T, '.'($id_s, $id_d), Res)).
-
-nt0@@Ret = nt(Rs, Stk, Suc, none, s($id_s, Src), s($id_d, {$dest[]}), M, S, T) :- int($id_s), int($id_d) |
-    Ret = suc(Rs, Stk, Suc, s($id_s, Src), M, S, set.insert(T, '.'($id_s, $id_d))).
-
-nt1@@Ret = nt(Rs, Stk, Suc, some, Src, s($id_d, {$dest[]}), M, S, T) :- int($id_d) |
-    Ret = suc(Rs, Stk, Suc, Src, M, S, T).
+% Ret = dst_search($x, [], T, R0, R1) :- int($x) |
+%     Ret=R1, T=R0.
