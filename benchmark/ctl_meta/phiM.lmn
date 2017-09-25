@@ -29,5 +29,5 @@ n(4). chopstick(4). chopstick(3). chopstick(2). chopstick(1). {phi(4). state(thi
 
   	     }
   	     ),
-  pred({{phi(1), state(eating), '$s'}}, {}, !P),
-  pred({{phi(1), state(hungry), '$s'}}, {}, !Q).
+  pred({{phi(1), state(eating), '$s'}}, {}, !Q),
+  pred({{phi(1), state(hungry), '$s'}}, {}, !P).
