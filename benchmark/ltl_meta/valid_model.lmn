@@ -1,0 +1,40 @@
+state_space.use.
+
+val([[{n(5). chopstick(1). chopstick(2). chopstick(3). chopstick(4). chopstick(5). {phi(5). state(thinking). noOfSticks(0). }, {phi(4). state(thinking). noOfSticks(0). }, {phi(3). state(thinking). noOfSticks(0). }, {phi(2). state(thinking). noOfSticks(0). }, {phi(1). state(thinking). noOfSticks(0). }. }|0],[{n(5). chopstick(1). chopstick(2). chopstick(3). chopstick(4). chopstick(5). {phi(5). state(thinking). noOfSticks(0). }, {phi(4). state(thinking). noOfSticks(0). }, {phi(3). state(thinking). noOfSticks(0). }, {phi(2). state(thinking). noOfSticks(0). }, {phi(1). state(hungry). noOfSticks(0). }. }|0],[{n(5). chopstick(1). chopstick(2). chopstick(3). chopstick(4). chopstick(5). {phi(5). state(thinking). noOfSticks(0). }, {phi(4). state(thinking). noOfSticks(0). }, {phi(3). state(thinking). noOfSticks(0). }, {phi(2). state(hungry). noOfSticks(0). }, {phi(1). state(hungry). noOfSticks(0). }. }|1],[{n(5). chopstick(1). chopstick(2). chopstick(3). chopstick(4). chopstick(5). {phi(5). state(thinking). noOfSticks(0). }, {phi(4). state(thinking). noOfSticks(0). }, {phi(3). state(hungry). noOfSticks(0). }, {phi(2). state(hungry). noOfSticks(0). }, {phi(1). state(hungry). noOfSticks(0). }. }|1],[{n(5). chopstick(1). chopstick(2). chopstick(3). chopstick(4). chopstick(5). {phi(5). state(thinking). noOfSticks(0). }, {phi(4). state(hungry). noOfSticks(0). }, {phi(3). state(hungry). noOfSticks(0). }, {phi(2). state(hungry). noOfSticks(0). }, {phi(1). state(hungry). noOfSticks(0). }. }|1],[{n(5). chopstick(1). chopstick(2). chopstick(3). chopstick(4). chopstick(5). {phi(5). state(hungry). noOfSticks(0). }, {phi(4). state(hungry). noOfSticks(0). }, {phi(3). state(hungry). noOfSticks(0). }, {phi(2). state(hungry). noOfSticks(0). }, {phi(1). state(hungry). noOfSticks(0). }. }|1],[{n(5). chopstick(1). chopstick(2). chopstick(3). chopstick(4). {phi(5). state(hungry). noOfSticks(1). }, {phi(4). state(hungry). noOfSticks(0). }, {phi(3). state(hungry). noOfSticks(0). }, {phi(2). state(hungry). noOfSticks(0). }, {phi(1). state(hungry). noOfSticks(0). }. }|1],[{n(5). chopstick(1). chopstick(2). chopstick(3). {phi(5). state(hungry). noOfSticks(1). }, {phi(4). state(hungry). noOfSticks(1). }, {phi(3). state(hungry). noOfSticks(0). }, {phi(2). state(hungry). noOfSticks(0). }, {phi(1). state(hungry). noOfSticks(0). }. }|1],[{n(5). chopstick(1). chopstick(2). {phi(5). state(hungry). noOfSticks(1). }, {phi(4). state(hungry). noOfSticks(1). }, {phi(3). state(hungry). noOfSticks(1). }, {phi(2). state(hungry). noOfSticks(0). }, {phi(1). state(hungry). noOfSticks(0). }. }|1],[{n(5). chopstick(1). {phi(5). state(hungry). noOfSticks(1). }, {phi(4). state(hungry). noOfSticks(1). }, {phi(3). state(hungry). noOfSticks(1). }, {phi(2). state(hungry). noOfSticks(1). }, {phi(1). state(hungry). noOfSticks(0). }. }|1],[{n(5). {phi(5). state(hungry). noOfSticks(1). }, {phi(4). state(hungry). noOfSticks(1). }, {phi(3). state(hungry). noOfSticks(1). }, {phi(2). state(hungry). noOfSticks(1). }, {phi(1). state(hungry). noOfSticks(1). }. }|1],[{n(5). {phi(5). state(hungry). noOfSticks(1). }, {phi(4). state(hungry). noOfSticks(1). }, {phi(3). state(hungry). noOfSticks(1). }, {phi(2). state(hungry). noOfSticks(1). }, {phi(1). state(hungry). noOfSticks(1). }. }|1]],
+	     {
+	hungry__ @@ {phi=I, state=thinking, $p} :- int(I) |
+            {phi=I, state=hungry,   $p}.
+	grab1stL @@ {phi=I, state=hungry,   noOfSticks=0}, chopstick(J) :- J=:=I |
+            {phi=I, state=hungry,   noOfSticks=1}.
+	grab1stR @@ {phi=I, state=hungry,   noOfSticks=0}, n(N), chopstick(J) :- J=:=I mod N + 1 |
+            {phi=I, state=hungry,   noOfSticks=1}, n(N).
+	grab2ndL @@ {phi=I, state=hungry,   noOfSticks=1}, chopstick(J) :- J=:=I |
+            {phi=I, state=eating,   noOfSticks=2}.
+	grab2ndR @@ {phi=I, state=hungry,   noOfSticks=1}, n(N), chopstick(J) :- J=:=I mod N + 1 |
+            {phi=I, state=eating,   noOfSticks=2}, n(N).
+	stopEat_ @@ {phi=I, state=eating,   noOfSticks=J}, n(N) :- int(J), C=(I mod N)+1 |
+            {phi=I, state=thinking, noOfSticks=0}, n(N), chopstick(I), chopstick(C).
+	     }).
+
+del([{$s[]}|L]) :- del(L).
+del([]) :- .
+
+val([[S|$x]|L], Rs) :- int($x) | 
+    run(S, L, Rs, state_space.state_map_init).
+
+run({$s[]}, [[{$dst[]}|$x]|L], Rs, M) :- int($x) | 
+    run_({$s[]}, {$dst[]}, I, L, Rss, state_space.react_nd_set(Rs, {$s[]}, Rss), state_space.state_map_find(M, {$dst[]}, I)).
+run({$s[]}, [], {@r}, M) :- true(M).
+
+run_({$s[]}, D, I, L, Rs, [D_|LL], M) :- run_0(D, I, L, Rs, [D_|LL], M).
+% stutter extension
+run_({$s[]}, D, I, L, Rs, [], M) :- run_0(D, I, L, Rs, [{$s[]}], M).
+
+run_0(D, I, L, Rs, [{$d[]}|LL], M) :- run_1(D, I, L, Rs, LL, I_, state_space.state_map_find(M, {$d[]}, I_)).
+run_0(D, I, L, Rs, [], M) :- false(D, I, L, Rs, M).
+
+run_1(D, $i, L, Rs, LL, $i_, M) :- $i=$i_ | run(D, L, Rs, M), del(LL).
+run_1(D, $i, L, Rs, LL, $i_, M) :- $i=\=$i_ | run_0(D, $i, L, Rs, LL, M).
+
+
+
