@@ -63,7 +63,7 @@ Ret = exp01(Rs, {@r, h($h)}/, s(ID, S, P, G), Hm, Pq, M) :- int($h) |
     Ret = exp0(Rs, {@r}, s(ID, S, P, G, $h), Hm, Pq, M).
 
 Ret = exp0(Rs, He, s($id, {$s[]}, $p, $g, $h), Hm, Pq, M) :- int($id), int($p), int($g), int($h) |
-    Ret = exp(Rs, He, hashmap.insert(Hm, $id, '.'($p, $g, $h)), pqueue.enq(Pq, s($id, {$s[]}, $p, $g, $h)), M).
+    Ret = exp(Rs, He, hashmap.insert(Hm, $id, {'.'($p, $g, $h)}), pqueue.enq(Pq, s($id, {$s[]}, $p, $g, $h)), M).
 
 Ret = exp(Rs, He, Hm, Pq, M) :-
     Ret = exp1(Rs, He, Hm, pqueue.is_emp(Pq, Res), Res, M).
@@ -74,13 +74,13 @@ Ret = exp1(Rs, He, Hm, Pq, true, M) :-
 Ret = exp1(Rs, He, Hm, Pq, false, M) :-
     Ret = exp2(Rs, He, Hm, pqueue.deq(Pq, Res), Res, M).
 
-Ret = exp2(Rs, He, Hm, Pq, s($id, S, P, G, $h), M) :- $h=:=0, int($id) |
-    Ret = create_path(Rs, He, Hm, Pq, '.'(P, G, $h), M, [S]).
+Ret = exp2(Rs, He, Hm, Pq, s($id, S, $p, $g, $h), M) :- $h=:=0, int($id), int($p), int($g) |
+    Ret = create_path(Rs, He, Hm, Pq, some({'.'($p, $g, $h)}), M, [S]).
 
-Ret = create_path(Rs, He, Hm, Pq, '.'($p, $g, $h), M, Path) :- $p=\=-1, int($p), int($g), int($h) |
+Ret = create_path(Rs, He, Hm, Pq, some({'.'($p, $g, $h)}), M, Path) :- $p=\=-1, int($p), int($g), int($h) |
     Ret = create_path(Rs, He, hashmap.find(Hm, $p, Ress), Pq, Ress, state_space.state_map_find(M, $p, R_), [R_|Path]).
 
-Ret = create_path(Rs, He, Hm, Pq, '.'($p, $g, $h), M, Path) :- $p=:=-1, int($g), int($h) |
+Ret = create_path(Rs, He, Hm, Pq, some({'.'($p, $g, $h)}), M, Path) :- $p=:=-1, int($g), int($h) |
     Ret = Path, finish(Rs, He, Hm, Pq, M).
 
 Ret = exp2(Rs, He, Hm, Pq, s(ID, S, P, G, $h), M) :- $h=\=0 |
@@ -108,39 +108,14 @@ Ret = suc4(Rs, He, Hm, Pq, Src, sc($id, S, P, G, H), L, M) :- int($id) |
     Ret = suc5(Rs, He, hashmap.find(Hm, $id, Res), Pq, Src, sc($id, S, P, G, H), Res, L, M).
 
 Ret = suc5(Rs, He, Hm, Pq, Src, sc($id, S, $p, $g, $h), none, L, M) :- int($id), int($p), int($g), int($h) |
-    Ret = suc(Rs, He, hashmap.insert(Hm, $id, '.'($p, $g, $h)), pqueue.enq(Pq, s($id, S, $p, $g, $h)), Src, L, M).
+    Ret = suc(Rs, He, hashmap.insert(Hm, $id, {'.'($p, $g, $h)}), pqueue.enq(Pq, s($id, S, $p, $g, $h)), Src, L, M).
 
-Ret = suc5(Rs, He, Hm, Pq, Src, sc($id, S, $p, $g, $h), '.'($p_, $g_, $h_), L, M) :- $g < $g_, int($id), int($p), int($g), int($h), int($p_), int($h_) |
-    Ret = suc(Rs, He, hashmap.insert(Hm, $id, '.'($p, $g, $h)), pqueue.enq(Pq, s($id, S, $p, $g, $h)), Src, L, M).
+Ret = suc5(Rs, He, Hm, Pq, Src, sc($id, S, $p, $g, $h), some({'.'($p_, $g_, $h_)}), L, M) :- $g < $g_, int($id), int($p), int($g), int($h), int($p_), int($h_) |
+    Ret = suc(Rs, He, hashmap.insert(Hm, $id, {'.'($p, $g, $h)}), pqueue.enq(Pq, s($id, S, $p, $g, $h)), Src, L, M).
 
-Ret = suc5(Rs, He, Hm, Pq, Src, sc($id, {$s[]}, $p, $g, $h), '.'($p_, $g_, $h_), L, M) :- $g >= $g_, int($id), int($p), int($g), int($h), int($p_), int($h_) |
+Ret = suc5(Rs, He, Hm, Pq, Src, sc($id, {$s[]}, $p, $g, $h), some({'.'($p_, $g_, $h_)}), L, M) :- $g >= $g_, int($id), int($p), int($g), int($h), int($p_), int($h_) |
     Ret = suc(Rs, He, Hm, Pq, Src, L, M).
 
-
-
-
-% 
-% HashMap
-% 
-
-% ----Interface----
-
-hashmap_init@@Ret = hashmap.init :- Ret = [].
-
-hashmap_insert@@Ret = hashmap.insert(H, Key, Val) :- Ret = [d(Key, Val)|H].
-
-hashmap_find@@Ret = hashmap.find(H, Key, Res) :- Ret = hashmap.inner_find(H, Key, Res, []).
-
-% ----Implementation----
-
-Ret = hashmap.inner_find([], $key, Res, Hs) :- int($key) | Ret = Hs, Res = none.
-Ret = hashmap.inner_find([d($key, '.'($p, $g, $f))|H], $key_, Res, Hs) :- int($g), int($f), int($p), $key=:=$key_ | 
-    Ret = append(Hs,[d($key, '.'($p, $g, $f))|H]), Res = '.'($p, $g, $f).
-Ret = hashmap.inner_find([d($key, V)|H], $key_, Res, Hs) :- $key=\=$key_ | 
-    Ret = hashmap.inner_find(H, $key_, Res, [d($key, V)|Hs]).
-
-H=append([],Y) :- H=Y.
-H=append([A|X],Y) :- H=[A|append(X,Y)].
 
 % 
 % Priority queue
