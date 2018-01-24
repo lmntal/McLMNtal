@@ -46,9 +46,38 @@ Ret = run4(Rs, St, Inv, C, M, S, T, Stk, Succ, [Succr]) :-
 
 % succ_cont---------
 % Ret = succ_cont(s(ID, {$s[]}, R), Inv, C, Rst, RInv) :-
-% Ret = succ_cont(s(ID, {$s[]}, R), Inv, C, Rst, RInv) :-
-%     Ret = cont0(Rs, )
+Ret = succ_cont(St, Inv, C, Rst, RInv) :-
+    Ret = cont0(St, Inv, C, Rst, RInv, {}).
 
+Ret = cont0(s(ID, {$s[]}, R), {inv({$h[]}, {$g[]}), $p[]}, C, Rst, Rinv, {$q[]}) :-
+    Ret = cont1(s(ID, {$s[]}, R), {$p[]}, state_space.react_nd_set({':-'({$h[]}, {}, {true})}, {$s[]}, Rfcr), {$g[]}, C, Rst, Rinv, {$q[], inv({$h[]}, {$g[]})}, Rfcr).
+
+Ret = cont0(s(ID, {$s[]}, R), {}, C, Rst, Rinv, Inv) :-
+    Ret = cont5(s(ID, {$s[]}, RetR), succ_r(R, C, RetR), Rst, Rinv, Inv).
+
+Ret = cont5(St, SuccR, Rst, Rinv, Inv) :-
+    Ret = [SuccR], Rst = St, Rinv = Inv.
+
+Ret = cont1(s(ID, {$s[]}, R), Inv, [{true}], {$g[]}, C, Rst, Rinv, Rstinv, {$fcr[]}) :-
+    Ret = cont2(s(ID, {$s[]}, RetR), Inv, sat_cc({$g[]}, R, RetR), {$g[]}, C, Rst, Rinv, Rstinv).
+
+Ret = cont1(s(ID, {$s[]}, R), Inv, [], {$g[]}, C, Rst, Rinv, Rstinv, {$fcr[]}) :-
+    Ret = cont0(s(ID, {$s[]}, R), Inv, C, Rst, Rinv, Rstinv).
+    
+Ret = cont2(St, {$p[]}, false, {$g[]}, $c, Rst, Rinv, {$q[]}) :- int($c) |
+    Ret = [], Rst = St, Rinv = {$p[], $q[]}.
+
+Ret = cont2(s(ID, {$s[]}, R), Inv, true, {$g[]}, C, Rst, Rinv, Rstinv) :-
+    Ret = cont3(s(ID, {$s[]}, RetR), Inv, succ_r(R, C, RetR), {$g[]}, Rst, Rinv, Rstinv).
+
+Ret = cont3(s(ID, {$s[]}, R), Inv, SuccR, {$g[]}, Rst, Rinv, Rstinv) :-
+    Ret = cont4(s(ID, {$s[]}, R), Inv, sat_cc({$g[]}, SuccR, RetR), RetR, Rst, Rinv, Rstinv).
+
+Ret = cont4(St, {$p[]}, true, SuccR, Rst, Rinv, {$q[]}) :-
+    Ret = [SuccR], Rst = St, Rinv = {$p[], $q[]}.
+
+Ret = cont4(St, {$p[]}, false, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), Rst, Rinv, {$q[]}) :- int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
+    Ret = [], Rst = St, Rinv = {$p[], $q[]}.
 
 % succ_disc---------
 % Ret = succ_disc(Rs, St, Inv, RetRs, RetSt, RetInv)
@@ -59,6 +88,9 @@ Ret = succ_disc(Rs, St, Inv, RetRs, RetSt, RetInv) :-
 
 Ret = disc0({':-'({$src[]}, {$d[]}, {$g[]}, {$dst[]}), $p[]}, St, Inv, RetRs, RetSt, RetInv, {$q[]}) :-
     Ret = disc1({$p[]}, {$src[]}, {$d[]}, {$g[]}, {$dst[]}, St, Inv, RetRs, RetSt, RetInv, {$q[], ':-'({$src[]}, {$d[]}, {$g[]}, {$dst[]})}).
+
+Ret = disc0({}, St, Inv, RetRs, RetSt, RetInv, {$q[]}) :-
+    Ret = [], RetRs = {$q[]}, RetSt = St, RetInv = Inv.
 
 Ret = disc1(Rs, {$src[]}, D, G, {$dst[]}, s(ID, {$s[]}, R), Inv, RRs, RSt, RInv, RRst) :-
     Ret = disc2(Rs, state_space.react_nd_set({':-'({$src[]}, {}, {$dst[]})}, {$s[]}, RetFCR), sat_cc(G, R, RetR), D, s(ID, {$s[]}, RetR), Inv, RRs, RSt, RInv, RRst, RetFCR).
