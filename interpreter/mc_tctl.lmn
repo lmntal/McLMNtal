@@ -1,0 +1,30 @@
+% **************************
+% *  TCTL Model Checking   *
+% **************************
+set.use.
+state_space.use.
+% light switch
+ret = mc(ef(and(!P, !Q)),
+	 {
+	':-'({off}, {x}, {'=:='(x, 1)}, {on}),
+	':-'({on}, {}, {'=:='(x, 1)}, {off})
+	 },
+	 {inv({on}, {'=<'(x, 1)})},
+	 {off},
+	 [x, z],
+	 1),
+  pred({'=<'(z, 1)}, {}, !P),
+  pred({on}, {}, !Q).
+
+
+% labeling algorithm---------------------------------------
+Ret = mc(Tctl, Ruleset, Inv, Init, Clk, C) :-
+    Ret = mc(Tctl, run(Ruleset, Inv, Init, Clk, C)).
+
+% make transition---------------------------------------
+Ret = run(Rs, Inv, {$ini[]}, [$x, $z], C) :- unary($x), unary($z) |
+    Ret = run0(Rs, s(ID, {$ini[]}, 0, 0, '=<', 0, 0, '=<', 0, 0, '=<'), Inv, C, 
+	       state_space.state_map_find(state_space.state_map_init, {ss({$ini[]}, 0, 0, '=<', 0, 0, '=<', 0, 0, '=<')}, ID), set.init, set.init).
+
+Ret = 
+    
