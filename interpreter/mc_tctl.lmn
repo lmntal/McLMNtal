@@ -6,7 +6,7 @@ state_space.use.
 % light switch
 ret = mc(ef(and(!P, !Q)),
 	 {
-	':-'({off}, {x}, {'=:='(x, 1)}, {on}),
+	':-'({off}, {reset}, {'=:='(x, 1)}, {on}),
 	':-'({on}, {}, {'=:='(x, 1)}, {off})
 	 },
 	 {inv({on}, {'=<'(x, 1)})},
@@ -21,7 +21,7 @@ ret = mc(ef(and(!P, !Q)),
 Ret = mc(Tctl, Ruleset, Inv, Init, Clk, C) :-
     Ret = mc(Tctl, run(Ruleset, Inv, Init, Clk, C)).
 
-% make transition---------------------------------------
+% make state space---------------------------------------
 Ret = run(Rs, Inv, {$ini[]}, [$x, $z], C) :- unary($x), unary($z) |
     Ret = run_ini(Rs, s(ID, {$ini[]}, r(0, 0, '=<', 0, 0, '=<', 0, 0, '=<')), Inv, C, 
 	       state_space.state_map_find(state_space.state_map_init, {ss({$ini[]}, r(0, 0, '=<', 0, 0, '=<', 0, 0, '=<'))}, ID), set.init, set.init).
@@ -35,8 +35,21 @@ Ret = run0(Ini, Rs, St, Inv, C, M, S, T) :-
 Ret = run1(Ini, Rs, Inv, C, M, S, T, [St|Stk]) :-
     Ret = run2(Ini, Rs, St, Inv, C, M, S, T, Stk).
 
-Ret = run2(Ini, Rs, St, Inv, C, M, S, T, Stk) :-
-    Ret = run3(Ini, RetRs, RetSt, RetInv, C, M, S, T, Stk, succ_disc(Rs, St, Inv, RetRs, RetSt, RetInv)).
+Ret = run1(Ini, {$rs[]}, {$inv[]}, $c, M, S, T, []) :- int($c) |
+    Ret = state_space(Ini, M, S, T).
+
+
+% -------------------------------------
+Ret = state_space(I, M, S, T) :-
+Ret = ss(I, M, set.to_list(S), set.to_list(T)).
+Ret = ss(I, M, [$x|S], T) :- int($x) |
+Ret = ss(I, state_space.state_map_find(M, $x, Res), S, T),
+state($x, Res).
+% -------------------------------------
+
+
+Ret = run2(Ini, Rs, St, Inv, $c, M, S, T, Stk) :- int($c) |
+    Ret = run3(Ini, RetRs, RetSt, RetInv, $c, M, S, T, Stk, succ_disc(Rs, St, Inv, RetRs, RetSt, RetInv, $c)).
 
 Ret = run3(Ini, Rs, St, Inv, $c, M, S, T, Stk, Succ) :- int($c) |
     Ret = run4(Ini, Rs, RetSt, RetInv, $c, M, S, T, Stk, Succ, succ_cont(St, Inv, $c, RetSt, RetInv)).
@@ -47,6 +60,28 @@ Ret = run4(Ini, Rs, St, Inv, C, M, S, T, Stk, Succ, []) :-
 Ret = run4(Ini, Rs, St, Inv, C, M, S, T, Stk, Succ, [Succr]) :-
     Ret = run5(Ini, Rs, St, Inv, C, M, S, T, Stk, [Succr|Succ]).
 
+Ret = run5(Ini, Rs, s($id, {$s[]}, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_)), Inv, C, M, S, T, Stk, []) :- int($id), int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
+    Ret = run1(Ini, Rs, Inv, C, M, S, T, Stk).
+
+Ret = run5(Ini, Rs, Src, Inv, C, M, S, T, Stk, [ss({$s[]}, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_))|Succ]) :- int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
+    Ret = run6(Ini, Rs, Src, s(ID, {$s[]}, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_)),Inv, C, state_space.state_map_find(M, {ss({$s[]}, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_))}, ID), S, T, Stk, Succ).
+
+Ret = run6(Ini, Rs, Src, s($id, Dst, R),Inv, C, M, S, T, Stk, Succ) :- int($id) |
+    Ret = run7(Ini, Rs, Src, s($id, Dst, R), Res, Inv, C, M, set.find(S, $id, Res), T, Stk, Succ).
+
+Ret = run7(Ini, Rs, s($id_s, Src, SR), s($id_d, Dst, DR), none, Inv, C, M, S, T, Stk, Succ) :- int($id_s), int($id_d) |
+    Ret = run5(Ini, Rs, s($id_s, Src, SR), Inv, C, M, set.insert(S, $id_d), set.insert(T, '.'($id_s, $id_d)), [s($id_d, Dst, DR)|Stk], Succ).
+
+Ret = run7(Ini, Rs, s($id_s, Src, SR), s($id_d, Dst, DR), some, Inv, C, M, S, T, Stk, Succ) :- int($id_s), int($id_d) |
+    Ret = run8(Ini, Rs, s($id_s, Src, SR), s($id_d, Dst, DR), Res, Inv, C, M, S, set.find(T, '.'($id_s, $id_d), Res), Stk, Succ).
+
+Ret = run8(Ini, Rs, s($id_s, Src, SR), s($id_d, {$dst[]}, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_)), none, Inv, C, M, S, T, Stk, Succ) :- int($id_s), int($id_d), int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
+    Ret = run5(Ini, Rs, s($id_s, Src, SR), Inv, C, M, S, set.insert(T, '.'($id_s, $id_d)), Stk, Succ).
+
+Ret = run8(Ini, Rs, Src, s($id_d, {$dst[]}, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_)), some, Inv, C, M, S, T, Stk, Succ) :- int($id_d), int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
+    Ret = run5(Ini, Rs, Src, Inv, C, M, S, T, Stk, Succ).
+
+
 % succ_cont---------
 % Ret = succ_cont(s(ID, {$s[]}, R), Inv, C, Rst, RInv) :-
 Ret = succ_cont(St, Inv, C, Rst, RInv) :-
@@ -55,8 +90,8 @@ Ret = succ_cont(St, Inv, C, Rst, RInv) :-
 Ret = cont0(s(ID, {$s[]}, R), {inv({$h[]}, {$g[]}), $p[]}, C, Rst, Rinv, {$q[]}) :-
     Ret = cont1(s(ID, {$s[]}, R), {$p[]}, state_space.react_nd_set({':-'({$h[]}, {}, {true})}, {$s[]}, Rfcr), {$g[]}, C, Rst, Rinv, {$q[], inv({$h[]}, {$g[]})}, Rfcr).
 
-Ret = cont0(s(ID, {$s[]}, R), {}, C, Rst, Rinv, Inv) :-
-    Ret = cont5(s(ID, {$s[]}, RetR), succ_r(R, C, RetR), Rst, Rinv, Inv).
+Ret = cont0(s(ID, {$s[]}, R), {}, $c, Rst, Rinv, Inv) :- int($c) |
+    Ret = cont5(s(ID, {$s[]}, RetR), norm(succ_r(R, $c, RetR), $c), Rst, Rinv, Inv).
 
 Ret = cont5(s(ID, {$s[]}, R), SuccR, Rst, Rinv, Inv) :-
     Ret = [ss({$s[]}, SuccR)], Rst = s(ID, {$s[]}, R), Rinv = Inv.
@@ -70,8 +105,8 @@ Ret = cont1(s(ID, {$s[]}, R), Inv, [], {$g[]}, C, Rst, Rinv, Rstinv, {$fcr[]}) :
 Ret = cont2(St, {$p[]}, false, {$g[]}, $c, Rst, Rinv, {$q[]}) :- int($c) |
     Ret = [], Rst = St, Rinv = {$p[], $q[]}.
 
-Ret = cont2(s(ID, {$s[]}, R), Inv, true, {$g[]}, C, Rst, Rinv, Rstinv) :-                                                                                                                                                   
-    Ret = cont3(s(ID, {$s[]}, RetR), Inv, succ_r(R, C, RetR), {$g[]}, Rst, Rinv, Rstinv).
+Ret = cont2(s(ID, {$s[]}, R), Inv, true, {$g[]}, $c, Rst, Rinv, Rstinv) :- int($c) |
+    Ret = cont3(s(ID, {$s[]}, RetR), Inv, norm(succ_r(R, $c, RetR), $c), {$g[]}, Rst, Rinv, Rstinv).
 
 Ret = cont3(s(ID, {$s[]}, R), Inv, SuccR, {$g[]}, Rst, Rinv, Rstinv) :-
     Ret = cont4(s(ID, {$s[]}, R), Inv, sat_cc({$g[]}, SuccR, RetR), RetR, Rst, Rinv, Rstinv).
@@ -83,43 +118,93 @@ Ret = cont4(St, {$p[]}, false, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $op
     Ret = [], Rst = St, Rinv = {$p[], $q[]}.
 
 % succ_disc---------
-% Ret = succ_disc(Rs, St, Inv, RetRs, RetSt, RetInv)
+% Ret = succ_disc(Rs, St, Inv, RetRs, RetSt, RetInv, C)
 % Rs = ':-'(Src, D, G, Dst)
 
-Ret = succ_disc(Rs, St, Inv, RetRs, RetSt, RetInv) :-
-    Ret = disc0(Rs, St, Inv, RetRs, RetSt, RetInv, {}).
+Ret = succ_disc(Rs, St, Inv, RetRs, RetSt, RetInv, C) :-
+    Ret = disc0(Rs, St, Inv, RetRs, RetSt, RetInv, {}, [], C).
 
-Ret = disc0({':-'({$src[]}, {$d[]}, {$g[]}, {$dst[]}), $p[]}, St, Inv, RetRs, RetSt, RetInv, {$q[]}) :-
-    Ret = disc1({$p[]}, {$src[]}, {$d[]}, {$g[]}, {$dst[]}, St, Inv, RetRs, RetSt, RetInv, {$q[], ':-'({$src[]}, {$d[]}, {$g[]}, {$dst[]})}).
+Ret = disc0({':-'({$src[]}, {$d[]}, {$g[]}, {$dst[]}), $p[]}, St, Inv, RetRs, RetSt, RetInv, {$q[]}, RetDst, C) :-
+    Ret = disc1({$p[]}, {$src[]}, {$d[]}, {$g[]}, {$dst[]}, St, Inv, RetRs, RetSt, RetInv, {$q[], ':-'({$src[]}, {$d[]}, {$g[]}, {$dst[]})}, RetDst, C).
 
-Ret = disc0({}, St, Inv, RetRs, RetSt, RetInv, {$q[]}) :-
-    Ret = [], RetRs = {$q[]}, RetSt = St, RetInv = Inv.
+Ret = disc0({}, St, Inv, RetRs, RetSt, RetInv, {$q[]}, RetDst, $c) :- int($c) |
+    Ret = RetDst, RetRs = {$q[]}, RetSt = St, RetInv = Inv.
 
-Ret = disc1(Rs, {$src[]}, D, G, {$dst[]}, s(ID, {$s[]}, R), Inv, RRs, RSt, RInv, RRst) :-
-    Ret = disc2(Rs, state_space.react_nd_set({':-'({$src[]}, {}, {$dst[]})}, {$s[]}, RetFCR), sat_cc(G, R, RetR), D, s(ID, {$s[]}, RetR), Inv, RRs, RSt, RInv, RRst, RetFCR).
+Ret = disc1(Rs, {$src[]}, D, G, {$dst[]}, s(ID, {$s[]}, R), Inv, RRs, RSt, RInv, RRst, RetDst, C) :-
+    Ret = disc2(Rs, state_space.react_nd_set({':-'({$src[]}, {}, {$dst[]})}, {$s[]}, RetFCR), sat_cc(G, R, RetR), D, s(ID, {$s[]}, RetR), Inv, RRs, RSt, RInv, RRst, RetFCR, RetDst, C).
 
-Ret = disc2(Rs, Dists, false, {$p[]}, St, Inv, RRs, RSt, RInv, RRst, {$q[]}) :-
-    Ret = disc0(Rs, St, Inv, RRs, RSt, RInv, RRst), del(Dists).
+Ret = disc2(Rs, Dists, false, {$p[]}, St, Inv, RRs, RSt, RInv, RRst, {$q[]}, RetDst, C) :-
+    Ret = disc0(Rs, St, Inv, RRs, RSt, RInv, RRst, RetDst, C), del(Dists).
 
-Ret = disc2(Rs, Dists, true, {reset}, s(ID, {$s[]}, r($lbx, $ubx, Opx, Lby, Uby, Opy, I, J, Opy_)), Inv, RRs, RSt, RInv, RRst, {$q[]}) :- int($lbx), int($ubx) |
-    Ret = disc3(Rs, Dists, s(ID, {$s[]}, r(0, 0, Opx, Lby, Uby, Opy, I, J, Opy_)), Inv, RRs, RSt, RInv, RRst).
+Ret = disc2(Rs, Dists, true, {}, s(ID, {$s[]}, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_)), Inv, RRs, RSt, RInv, RRst, {$q[]}, RetDst, C) :- int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
+    Ret = disc3(Rs, Dists, s(ID, {$s[]}, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_)), r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), Inv, RRs, RSt, RInv, RRst, RetDst, C).
 
+Ret = disc2(Rs, Dists, true, {reset}, s(ID, {$s[]}, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_)), Inv, RRs, RSt, RInv, RRst, {$q[]}, RetDst, $c) :- int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
+    Ret = disc3(Rs, Dists, s(ID, {$s[]}, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_)), norm(r(0, 0, $opx, $lby, $uby, $opy, $lby, $uby, $opy), $c), Inv, RRs, RSt, RInv, RRst, RetDst, $c).
+
+Ret = disc3(Rs, [DstSt|Dsts], Src, DstR, Inv, RRs, RSt, RInv, RRst, RetDst, C) :-
+    Ret = disc4(Rs, Dsts, Src, dst(DstSt, DstR), Inv, RRs, RSt, RInv, RRst, RetDst, C).
+
+Ret = disc3(Rs, [], Src, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), Inv, RRs, RSt, RInv, RRst, RetDst, C) :- int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
+    Ret = disc0(Rs, Src, Inv, RRs, RSt, RInv, RRst, RetDst, C).
+
+Ret = disc4(Rs, Dsts, Src, dst(DstSt, R), Inv, RRs, RSt, RInv, RRst, RetDst, C) :-
+    Ret = disc5(Rs, Dsts, Src, dst(RetDstst, RetR), sat_cc(get_inv(Inv, DstSt, RetInv, RetDstst, {}), R, RetR), RetInv, RRs, RSt, RInv, RRst, RetDst, C).
+
+Ret = disc5(Rs, Dsts, Src, dst(Dstst, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_)), true, Inv, RRs, Rst, RInv, RRst, RetDst, C) :- int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
+    Ret = disc3(Rs, Dsts, Src, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), Inv, RRs, Rst, RInv, RRst, [ss(Dstst, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_))|RetDst], C).
+
+
+% norm--------
+Ret = norm(r($lbx, $ubx, '<', $lby, $uby, $opy, $i, $j, $opy_), $c) :- $lbx =:= $c, int($c), int($lbx), int($ubx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
+    Ret = r($lbx, $ubx, '<', $lby, $uby, $opy, 0, 0, '=<').
+    
+Ret = norm(r($lbx, $ubx, '<', $lby, $uby, $opy, $i, $j, $opy_), $c) :- $lbx =\= $c, int($c), int($lbx), int($ubx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
+    Ret = norm_(r($lbx, $ubx, '<', $lby, $uby, $opy, $i, $j, $opy_), $c).
+
+Ret = norm(r($lbx, $ubx, '=<', $lby, $uby, $opy, $i, $j, $opy_), $c) :- int($c), int($lbx), int($ubx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
+    Ret = norm_(r($lbx, $ubx, '=<', $lby, $uby, $opy, $i, $j, $opy_), $c).
+
+Ret = norm_(r($lbx, $ubx, $opx, $lby, $uby, '<', $i, $j, $opy_), $c) :- $lby =:= $c, int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), int($i), int($j), unary($opy_) |
+    Ret = r($lbx, $ubx, $opx, $lby, $uby, '<', 0, 0, '=<').
+
+Ret = norm_(r($lbx, $ubx, $opx, $lby, $uby, '<', $i, $j, $opy_), $c) :- $lby =\= $c, int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), int($i), int($j), unary($opy_) |
+    Ret = r($lbx, $ubx, $opx, $lby, $uby, '<', $i, $j, $opy_).
+
+Ret = norm_(r($lbx, $ubx, $opx, $lby, $uby, '=<', $i, $j, $opy_), $c) :- int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), int($i), int($j), unary($opy_) |
+    Ret = r($lbx, $ubx, $opx, $lby, $uby, '=<', $i, $j, $opy_).
+
+
+
+% get_inv------
+Ret = get_inv({inv({$h[]}, {$g[]}), $p[]}, {$dst[]}, RetInv, RetDst, {$q[]}) :-
+    Ret = get_inv0({$p[]}, state_space.react_nd_set({':-'({$h[]}, {}, {true})}, {$dst[]}, Rfcr), RetInv, RetDst, {inv({$h[]}, {$g[]}), $q[]}, {$dst[]}, {$g[]}, Rfcr).
+
+
+Ret = get_inv({}, Dst, RetInv, RetDst, RstInv) :-
+    Ret = {}, RetInv = RstInv, RetDst = Dst.
+
+Ret = get_inv0({$p[]}, [{true}], RetInv, RetDst, {$q[]}, Dst, G, {$fcr[]}) :-
+    Ret = G, RetInv = {$p[], $q[]}, RetDst = Dst.
+
+Ret = get_inv0(Inv, [], RetInv, RetDst, RstInv, Dst, {$g[]}, {$fcr[]}) :-
+    Ret = get_inv(Inv, Dst, RetInv, RetDst, RstInv).
 
 % sat_cc---------------------
 Ret = sat_cc({'=:='($x, $c)}, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), RetR) :- unary($x), int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
     Ret = cc_eq($c, $lbx,$ubx, $opx), RetR = r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_).
 
 Ret = sat_cc({'=<'($x, $c)}, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), RetR) :- unary($x), int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
-    Ret = cc_lteq($c, $lbx,$ubx, $opx), RetR = r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_).
+    Ret = cc_leq($c, $lbx,$ubx, $opx), RetR = r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_).
 
 Ret = sat_cc({'<'($x, $c)}, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), RetR) :- unary($x), int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
-    Ret = cc_lteq($c, $lbx,$ubx, $opx), RetR = r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_).
+    Ret = cc_l($c, $lbx,$ubx, $opx), RetR = r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_).
 
 Ret = sat_cc({'>='($x, $c)}, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), RetR) :- unary($x), int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
     Ret = cc_gteq($c, $lbx,$ubx, $opx), RetR = r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_).
 
 Ret = sat_cc({'>'($x, $c)}, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), RetR) :- unary($x), int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
-    Ret = cc_gteq($c, $lbx,$ubx, $opx), RetR = r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_).
+    Ret = cc_geq($c, $lbx,$ubx, $opx), RetR = r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_).
 
 Ret = sat_cc({}, r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), RetR) :- int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
     Ret = true, RetR = r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_).
@@ -131,29 +216,45 @@ Ret = cc_eq($c, $lbx, $ubx, '=<') :- $c=\=$lbx, int($ubx) | Ret = false.
 Ret = cc_eq($c, $lbx, $ubx, '=<') :- $c=\=$ubx, int($lbx) | Ret = false.
 Ret = cc_eq($c, $lbx, $ubx, '<') :- int($c), int($lbx), int($ubx) |  Ret = false.
 
-Ret = cc_lteq($c, $lbx, $ubx, '=<') :- $ubx =< $c, int($lbx) |  Ret = true.
-Ret = cc_lteq($c, $lbx, $ubx, '=<') :- $ubx > $c, int($lbx) | Ret = false.
-Ret = cc_lteq($c, $lbx, $ubx, '<') :- $ubx < $c, int($lbx) | Ret = true.
-Ret = cc_lteq($c, $lbx, $ubx, '<') :- $ubx >= $c, int($lbx) | Ret = false.
+Ret = cc_leq($c, $lbx, $ubx, '=<') :- $ubx =< $c, int($lbx) |  Ret = true.
+Ret = cc_leq($c, $lbx, $ubx, '=<') :- $ubx > $c, int($lbx) | Ret = false.
+Ret = cc_leq($c, $lbx, $ubx, '<') :- $ubx =< $c, int($lbx) | Ret = true.
+Ret = cc_leq($c, $lbx, $ubx, '<') :- $ubx > $c, int($lbx) | Ret = false.
 
-Ret = cc_gteq($c, $lbx, $ubx, '=<') :- $c =< $lbx, int($ubx) | Ret = true.
-Ret = cc_gteq($c, $lbx, $ubx, '=<') :- $c > $lbx, int($ubx) | Ret = false.
-Ret = cc_gteq($c, $lbx, $ubx, '<') :- $c < $lbx, int($ubx) | Ret = true.
-Ret = cc_gteq($c, $lbx, $ubx, '<') :- $c >= $lbx, int($ubx) | Ret = false.
+Ret = cc_l($c, $lbx, $ubx, '=<') :- $ubx < $c, int($lbx) |  Ret = true.
+Ret = cc_l($c, $lbx, $ubx, '=<') :- $ubx >= $c, int($lbx) | Ret = false.
+Ret = cc_l($c, $lbx, $ubx, '<') :- $ubx =< $c, int($lbx) | Ret = true.
+Ret = cc_l($c, $lbx, $ubx, '<') :- $ubx > $c, int($lbx) | Ret = false.
 
+
+Ret = cc_geq($c, $lbx, $ubx, '=<') :- $c =< $lbx, int($ubx) | Ret = true.
+Ret = cc_geq($c, $lbx, $ubx, '=<') :- $c > $lbx, int($ubx) | Ret = false.
+Ret = cc_geq($c, $lbx, $ubx, '<') :- $c =< $lbx, int($ubx) | Ret = true.
+Ret = cc_geq($c, $lbx, $ubx, '<') :- $c > $lbx, int($ubx) | Ret = false.
+
+Ret = cc_g($c, $lbx, $ubx, '=<') :- $c < $lbx, int($ubx) | Ret = true.
+Ret = cc_g($c, $lbx, $ubx, '=<') :- $c >= $lbx, int($ubx) | Ret = false.
+Ret = cc_g($c, $lbx, $ubx, '<') :- $c =< $lbx, int($ubx) | Ret = true.
+Ret = cc_g($c, $lbx, $ubx, '<') :- $c > $lbx, int($ubx) | Ret = false.
     
 % succ_r-------------------
 % Ret = succ_r(R, C, RetR)
-Ret = succ_r(r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), $c, RetR) :- $lbx =:= $c, $lby =:= $c, int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
-    Ret = r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), RetR = r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_).
+Ret = succ_r(r($lbx, $ubx, '<', $lby, $uby, '<', $i, $j, $opy_), $c, RetR) :- $lbx =:= $c, $lby =:= $c, int($c), int($lbx), int($ubx), int($lby), int($uby), int($i), int($j), unary($opy_) |
+    Ret = r($lbx, $ubx, '<', $lby, $uby, '<', $i, $j, $opy_), RetR = r($lbx, $ubx, '<', $lby, $uby, '<', $i, $j, $opy_).
 
-Ret = succ_r(r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), $c, RetR) :- $lbx =:= $c, $lby =\= $c, int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
-    Ret = succ_r0(r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), $c, RetR).
+Ret = succ_r(r($lbx, $ubx, '<', $lby, $uby, $opy, $i, $j, $opy_), $c, RetR) :- $lbx =:= $c, $lby =\= $c, int($c), int($lbx), int($ubx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
+    Ret = succ_r0(r($lbx, $ubx, '<', $lby, $uby, $opy, $i, $j, $opy_), $c, RetR).
 
-Ret = succ_r(r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), $c, RetR) :- $lbx =\= $c, $lby =:= $c, int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
-    Ret = succ_r1(r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), $c, RetR).
+Ret = succ_r(r($lbx, $ubx, '<', $lby, $uby, '=<', $i, $j, $opy_), $c, RetR) :- $lbx =:= $c, int($c), int($lbx), int($ubx), int($lby), int($uby), int($i), int($j), unary($opy_) |
+    Ret = succ_r0(r($lbx, $ubx, '<', $lby, $uby, '=<', $i, $j, $opy_), $c, RetR).
 
-Ret = succ_r(r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), $c, RetR) :- $lbx =\= $c, $lby =\= $c, int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
+Ret = succ_r(r($lbx, $ubx, '=<', $lby, $uby, '<', $i, $j, $opy_), $c, RetR) :- $lby =:= $c, int($c), int($lbx), int($ubx), int($lby), int($uby), int($i), int($j), unary($opy_) |
+    Ret = succ_r1(r($lbx, $ubx, '=<', $lby, $uby, '<', $i, $j, $opy_), $c, RetR).
+
+Ret = succ_r(r($lbx, $ubx, $opx, $lby, $uby, '<', $i, $j, $opy_), $c, RetR) :- $lbx =\= $c, $lby =:= $c, int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), int($i), int($j), unary($opy_) |
+    Ret = succ_r1(r($lbx, $ubx, $opx, $lby, $uby, '<', $i, $j, $opy_), $c, RetR).
+
+Ret = succ_r(r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), $c, RetR) :- int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j), unary($opy_) |
     Ret = succ_r2(r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, $opy_), $c, RetR).
 
 Ret = succ_r0(r($lbx, $ubx, $opx, $lby, $uby, '=<', $i, $j, $opy_), $c, RetR) :- int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), int($i), int($j), unary($opy_) |
@@ -163,10 +264,10 @@ Ret = succ_r0(r($lbx, $ubx, $opx, $lby, $uby, '<', $i, $j, $opy_), $c, RetR) :- 
     Ret = r($lbx, $ubx, $opx, $uby, $uby, '=<', $i, $j, $opy_), RetR = r($lbx, $ubx, $opx, $lby, $uby, '<', $i, $j, $opy_).
 
 Ret = succ_r1(r($lbx, $ubx, '=<', $lby, $uby, $opy, $i, $j, $opy_), $c, RetR) :- int($c), int($lbx), int($ubx), unary($opy), int($lby), int($uby), int($i), int($j), unary($opy_) |
-    Ret = r($lbx, $lbx+1, '<', $uby, $uby, $opy, $i, $j, $opy_), RetR = r($lbx, $ubx, '=<', $lby, $uby, $opy, $i, $j, $opy_).
+    Ret = r($lbx, $lbx+1, '<', $lby, $uby, $opy, $i, $j, $opy_), RetR = r($lbx, $ubx, '=<', $lby, $uby, $opy, $i, $j, $opy_).
 
 Ret = succ_r1(r($lbx, $ubx, '<', $lby, $uby, $opy, $i, $j, $opy_), $c, RetR) :- int($c), int($lbx), int($ubx), unary($opy), int($lby), int($uby), int($i), int($j), unary($opy_) |
-    Ret = r($ubx, $ubx, '=<', $uby, $uby, $opy, $i, $j, $opy_), RetR = r($lbx, $ubx, '<', $lby, $uby, $opy, $i, $j, $opy_).
+    Ret = r($ubx, $ubx, '=<', $lby, $uby, $opy, $i, $j, $opy_), RetR = r($lbx, $ubx, '<', $lby, $uby, $opy, $i, $j, $opy_).
 
 Ret = succ_r2(r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, '=<'), $c, RetR) :- int($c), int($lbx), int($ubx), unary($opx), int($lby), int($uby), unary($opy), int($i), int($j) |
     Ret = succ_r3(r($lbx, $ubx, $opx, $lby, $uby, $opy, $i, $j, '=<'), $c, RetR).
