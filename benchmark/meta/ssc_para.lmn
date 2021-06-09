@@ -1,0 +1,51 @@
+
+set.use.
+state_space.use.
+n(0), t(0).
+
+
+
+run@@Ret = run(Rs, {$ini[]}), n($n) :- $nn = $n+1 |
+    Ret = exp0(Rs, s(ID, {$ini[]}), 
+	       state_space.state_map_find(state_space.state_map_init, {$ini[]}, ID), set.init, set.init), n($nn).
+
+exp0@@Ret = exp0(Rs, X, M, S, T), X=s($id, {$ini[]}) :- int($id) |
+    Ret = exp(Rs, [{$ini[]}], [$id], M, set.insert(S, $id), T, 1), ini($id).
+
+exp1@@Ret = exp({$rs[], @rs}, [], [], M, S, T, 0), ini(I) :-
+    Ret = state_space(I, M, S, T).
+
+exp2@@Ret = exp(Rss, X, L, M, S, T, Len) :-
+    Ret = suc(Rs, state_space.react_nd_set_para(Rss, X, Len, Rs), L, M, S, T, [], [], 0).
+
+Ret = suc(Rs, [X|Xs], [I|Is], M, S, T, Newss, NewId, Len) :-
+    Ret = suc1(Rs, Xs, Is, X, I, M, S, T, Newss, NewId, Len).
+
+suc0@@Ret = suc(Rs, [], [], M, S, T, Newss, NewId, Len) :- 
+    Ret = exp(Rs, Newss, NewId, M, S, T, Len).
+
+Ret = suc1(Rs, Xs, Is, [{$dst[]}|Ys], I, M, S, T, Newss, NewId, Len) :- 
+    Ret = ns(Rs, Xs, Is, Ys, I, s(ID, {$dst[]}), state_space.state_map_find(M, {$dst[]}, ID), S, T, Newss, NewId, Len).
+
+Ret = suc1(Rs, Xs, Is, [], $id, M, S, T, Newss, NewId, Len) :- int($id) |
+    Ret = suc(Rs, Xs, Is, M, S, T, Newss, NewId, Len).
+
+
+Ret = ns(Rs, Xs, Is, Ys, I, s($id, {$dst[]}), M, S, T, Newss, NewId, Len) :- int($id) |
+    Ret = ns1(Rs, Xs, Is, Ys, I, Res, s($id, {$dst[]}), M, set.find(S, $id, Res), T, Newss, NewId, Len).
+
+
+Ret = ns1(Rs, Xs, Is, Ys, $id_s, some, s($id, Dest), M, S, T, Newss, NewId, Len) :- int($id), int($id_s) |
+    Ret = nt(Rs, Xs, Is, Ys, $id_s, Res, s($id, Dest), M, S, set.find(T, '.'($id_s, $id), Res), Newss, NewId, Len).
+
+Ret = ns1(Rs, Xs, Is, Ys, $id_s, none, s($id, Dest), M, S, T, Newss, NewId, $len), n($n), t($t) :- int($id), int($id_s), $nn=$n+1, $tt=$t+1, $lenn = $len+1 |
+    Ret = suc1(Rs, Xs, Is, Ys, $id_s, M, set.insert(S, $id), set.insert(T, '.'($id_s, $id)), [Dest|Newss], [$id|NewId], $lenn), n($nn), t($tt).
+
+suc1@@Ret = suc(Rs, Stk, [{$dest[]}|Suc], Src, M, S, T, Newss, NewId, Len) :-
+    Ret = ns0(Rs, Stk, Suc, Src, s0(ID, {$dest[]}), state_space.state_map_find(M, {$dest[]}, ID), S, T, Newss, NewId, Len).
+
+Ret = nt(Rs, Xs, Is, Ys, Id, some, s($id_dst, {$dst[]}), M, S, T, Newss, NewId, Len) :- int($id_dst) |
+    Ret = suc1(Rs, Xs, Is, Ys, Id, M, S, T, Newss, NewId, Len).
+
+Ret = nt(Rs, Xs, Is, Ys, $id_src, none, s($id_dst, {$dst[]}), M, S, T, Newss, NewId, Len), t($t) :- int($id_dst), int($id_src), $tt=$t+1 |
+    Ret = suc1(Rs, Xs, Is, Ys, $id_src, M, S, set.insert(T, '.'($id_src, $id_dst)), Newss, NewId, Len), t($tt).
