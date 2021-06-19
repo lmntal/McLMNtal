@@ -1,0 +1,49 @@
+
+set.use.
+state_space.use.
+n(0), t(0).
+
+
+
+run@@Ret = run(Rs, {$ini[]}), n($n) :- $nn = $n+1 |
+    Ret = exp0(Rs, s(ID, {$ini[]}), 
+	       state_space.state_map_find(state_space.state_map_init, {$ini[]}, ID), set.init, set.init), n($nn).
+
+exp0@@Ret = exp0(Rs, X, M, S, T), X=s($id, {$ini[]}) :- int($id) |
+    Ret = exp(Rs, [{$ini[]}], [$id], M, set.insert(S, $id), T, 1), ini($id).
+
+exp1@@Ret = exp({$rs[], @rs}, [], [], M, S, T, 0), ini(I) :-
+    Ret = state_space(I, M, S, T).
+
+exp2@@Ret = exp(Rss, X, L, M, S, T, $len) :- int($len) |
+    Ret = suc(Rs, state_space.react_nd_set_para(Rss, X, $len, Rs), L, M, S, T, [], [], $len).
+
+Ret = suc(Rs, [X|Xs], [I|Is], M, S, T, Newss, NewId, Len) :- 
+    Ret = suc0(Rs, IDs, [I|Is], state_space.state_map_find_para(M, [X|Xs], Len, IDs), S, T, Newss, NewId, 0).
+
+suc0@@Ret = suc(Rs, [], [], M, S, T, Newss, NewId, Len) :- 
+    Ret = exp(Rs, Newss, NewId, M, S, T, Len).
+
+Ret = suc0(Rs, [Id|Ids], [I|Is], M, S, T, Newss, NewId, Len) :-
+    Ret = suc1(Rs, Id, Ids, I, Is, M, S, T, Newss, NewId, Len).
+
+Ret = suc0(Rs, [], [], M, S, T, Ns, Ni, Len) :-
+    Ret = exp(Rs, Ns, Ni, M, S, T, Len).
+
+Ret = suc1(Rs, [$id|Ids], Rids, I, Is, M, S, T, Ns, Ni, Len) :- int($id) |
+    Ret = ns(Rs, $id, Ids, Rids, I, Is, Res, M, set.find(S, $id, Res), T, Ns, Ni, Len).
+
+Ret = suc1(Rs, [], Ids, $i, Is, M, S, T, Ns, Ni, Len) :- int($i) |
+    Ret = suc0(Rs, Ids, Is, M, S, T, Ns, Ni, Len).
+
+Ret = ns(Rs, $id, Ids, Rids, $i, Is, some, M, S, T, Ns, Ni, Len) :- int($id), int($i) |
+    Ret = nt(Rs, $id, Ids, Rids, $i, Is, Res, M, S, set.find(T, '.'($i, $id), Res), Ns, Ni, Len).
+
+Ret = ns(Rs, $id, Ids, Rids, $i, Is, none, M, S, T, Ns, Ni, $len), n($n), t($t) :- int($id), int($i), $lenn=$len+1, $nn=$n+1, $tt=$t+1 |
+    Ret = suc1(Rs, Ids, Rids, $i, Is, state_space.state_map_find(M, $id, Res), set.insert(S, $id), set.insert(T, '.'($i, $id)), [Res|Ns], [$id|Ni], $lenn), n($nn), t($tt).
+
+Ret = nt(Rs, $id, Ids, Rids, I, Is, some, M, S, T, Ns, Ni, Len) :- int($id)|
+    Ret = suc1(Rs, Ids, Rids, I, Is, M, S, T, Ns, Ni, Len).
+
+Ret = nt(Rs, $id, Ids, Rids, $i, Is, none, M, S, T, Ns, Ni, Len), t($t) :- int($i), int($id), $tt=$t+1|
+    Ret = suc1(Rs, Ids, Rids, $i, Is, M, S, set.insert(T, '.'($i, $id)), Ns, Ni, Len), t($tt).
